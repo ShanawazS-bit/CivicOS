@@ -62,9 +62,6 @@ export const DEMO_UTILITY_PLANS: UtilityPlan[] = [
 ]
 
 export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
-  const drainagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'drainage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
-  const leakagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'water leakage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
-
   const lats = issues.map(i => i.lat).filter((l): l is number => typeof l === 'number');
   const lngs = issues.map(i => i.lng).filter((l): l is number => typeof l === 'number');
   
@@ -144,28 +141,37 @@ export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
     }
   }
 
-  const plans: UtilityPlan[] = [];
-
-  if (drainagePoints.length >= 2) {
-    plans.push({
-      id: 'utility-drainage-prediction',
-      companyName: 'Jio Fiber',
-      utilityType: 'AI Recommended Fiber Route',
-      plannedStartDate: new Date().toISOString().split('T')[0],
-      color: '#2563EB',
-      route: calculateRoute(drainagePoints)
-    });
+  const groups = new Map<string, {lat: number, lng: number}[]>();
+  for (const issue of issues) {
+    if (typeof issue.lat === 'number' && typeof issue.lng === 'number') {
+      const type = issue.issue_type;
+      if (!groups.has(type)) groups.set(type, []);
+      groups.get(type)!.push({ lat: issue.lat, lng: issue.lng });
+    }
   }
 
-  if (leakagePoints.length >= 2) {
-    plans.push({
-      id: 'utility-water-prediction',
-      companyName: 'Tata Power',
-      utilityType: 'AI Recommended Power Feeder',
-      plannedStartDate: new Date().toISOString().split('T')[0],
-      color: '#F97316',
-      route: calculateRoute(leakagePoints)
-    });
+  const sortedGroups = Array.from(groups.entries())
+    .filter(([_, points]) => points.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 3); // Max 3 corridors
+
+  const plans: UtilityPlan[] = [];
+  const colors = ['#2563EB', '#F97316', '#10B981']; // Blue, Orange, Green
+  const companyNames = ['Jio Fiber', 'Tata Power', 'City Water Board'];
+
+  for (let i = 0; i < sortedGroups.length; i++) {
+    const [type, points] = sortedGroups[i];
+    const route = calculateRoute(points);
+    if (route.length > 0) {
+      plans.push({
+        id: `utility-prediction-${type.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        companyName: companyNames[i],
+        utilityType: `AI Predicted ${type} Corridor`,
+        plannedStartDate: new Date().toISOString().split('T')[0],
+        color: colors[i],
+        route
+      });
+    }
   }
 
   return plans;
@@ -219,7 +225,6 @@ export function findDigOnceOpportunities(issues: Issue[], plans: UtilityPlan[]):
   const activeExcavationIssues = issues.filter(
     (issue) =>
       issue.status !== 'resolved' &&
-      EXCAVATION_TRIGGER_TYPES.has(issue.issue_type) &&
       typeof issue.lat === 'number' &&
       typeof issue.lng === 'number'
   )
