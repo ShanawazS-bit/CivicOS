@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { BottomNav } from '@/components/BottomNav'
 import { ConnectionBanner } from '@/components/ConnectionBanner'
+import { EditorialTopNav } from '@/components/EditorialTopNav'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { FeedPage } from '@/pages/FeedPage'
 import { HomePage } from '@/pages/HomePage'
 import { ReportPage } from '@/pages/ReportPage'
 import { preloadPrimaryDestinationsWhenIdle } from '@/lib/preloadPrimaryDestinations'
@@ -15,6 +15,10 @@ const AdminPage = lazy(() =>
 
 const AboutPage = lazy(() =>
   import('@/pages/AboutPage').then((m) => ({ default: m.AboutPage }))
+)
+
+const FeedPage = lazy(() =>
+  import('@/pages/FeedPage').then((m) => ({ default: m.FeedPage }))
 )
 
 export default function App() {
@@ -42,6 +46,7 @@ function AppShell() {
 
   return (
     <>
+      {!adminMode && <EditorialTopNav />}
       {!editorialImmersiveMode && <ConnectionBanner mode={dataSource} />}
       <main className={adminMode ? 'h-screen overflow-hidden' : editorialImmersiveMode ? 'min-h-screen' : 'min-h-screen pb-[83px]'}>
         <Routes>
@@ -62,7 +67,14 @@ function AppShell() {
             }
           />
           <Route path="/home" element={<HomePage />} />
-          <Route path="/feed" element={<FeedPage />} />
+          <Route
+            path="/feed"
+            element={
+              <Suspense fallback={<LoadingSpinner label="Loading area health…" />}>
+                <FeedPage />
+              </Suspense>
+            }
+          />
           <Route path="/report" element={<ReportPage />} />
           <Route
             path="/admin"

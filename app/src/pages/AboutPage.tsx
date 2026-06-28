@@ -5,81 +5,25 @@ import { motion } from 'framer-motion'
 import {
   ArrowRight,
   ChevronDown,
-  Clock,
+  DollarSign,
   Eye,
   Layers,
+  MapPinned,
+  Network,
+  RadioTower,
+  Route,
   ShieldCheck,
 } from 'lucide-react'
 import { ImageRiskTimeline } from '@/components/ImageRiskTimeline'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { CIVIC_GEOFENCES } from '@/lib/geofencing'
+import { DEMO_UTILITY_PLANS, TRANSIT_FRICTION_SAMPLES } from '@/lib/monetization'
 import { ABOUT_SCENE_PATH } from '@/lib/preloadAboutExperience'
 
 const scenePath = ABOUT_SCENE_PATH
 
-const sections = [
-  {
-    id: 'intro',
-    eyebrow: 'INTRO // SPATIAL TRANSLATION',
-    title: 'One civic signal. No municipal noise.',
-    copy:
-      'CivicOS turns a single image payload into structured operational telemetry, removing the brittle form fields that usually slow down local reporting.',
-    icon: Eye,
-  },
-  {
-    id: 'pipeline',
-    eyebrow: 'PIPELINE // MULTIMODAL SYNTHESIS',
-    title: 'Vision, location, severity, and trust converge.',
-    copy:
-      'The system extracts issue type, confidence, severity, and coordinate context before the report ever reaches a command desk.',
-    icon: Layers,
-  },
-  {
-    id: 'network',
-    eyebrow: 'NETWORK // DUPLICATE SUPPRESSION',
-    title: 'Repeated complaints become one actionable node.',
-    copy:
-      'Spatial filtering collapses overlapping reports into unique clusters, giving administrators a cleaner queue with stronger trust metrics.',
-    icon: ShieldCheck,
-  },
-]
-
 export function AboutPage() {
   return (
     <div className="min-h-screen scroll-smooth overflow-x-hidden bg-[#F2F1EE] font-sans text-[#111111] antialiased selection:bg-[#E11D2E]/20 dark:bg-[#111111] dark:text-[#F2F1EE]">
-      <nav className="fixed left-0 top-0 z-50 flex w-full items-center justify-between border-b-2 border-[#111111] bg-white px-6 py-4 dark:border-[#F2F1EE] dark:bg-[#111111]">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-[15px] font-black uppercase tracking-widest text-[#111111] dark:text-[#F2F1EE]">
-            CIVIC.OS
-          </span>
-          <span className="border border-zinc-200 px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#4A4A4A] dark:border-white/20 dark:text-[#C9C2B8]">
-            v1.0-2026
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-6">
-          <div className="hidden items-center gap-6 text-[12px] font-black uppercase tracking-widest md:flex">
-            {sections.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                className="transition-colors duration-300 hover:text-[#E11D2E]"
-              >
-                {section.id}
-              </a>
-            ))}
-            <a href="#console" className="transition-colors duration-300 hover:text-[#E11D2E]">
-              console
-            </a>
-          </div>
-          <div className="h-4 w-px bg-zinc-200 dark:bg-white/20" />
-          <div className="hidden items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8] sm:flex">
-            <Clock className="h-3 w-3 text-[#E11D2E]" />
-            <span>Approach Index</span>
-          </div>
-          <ThemeToggle />
-        </div>
-      </nav>
-
       <main>
         <section
           id="intro"
@@ -94,12 +38,11 @@ export function AboutPage() {
                 // Autonomous municipal intake
               </span>
               <h1 className="text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-                Autonomous sorting of municipal breakdowns.
+                SIGNAL OVER NOISE
               </h1>
               <p className="mt-8 max-w-md text-left text-[16px] leading-[1.45] tracking-normal text-[#4A4A4A] dark:text-[#C9C2B8]">
-                One image payload. Zero user fields. A direct engineering stream designed to
-                bypass reporting friction and isolate structural duplicates before they reach the
-                city desk.
+                One image. Zero Questions Asked. Eliminates reporting friction, processes raw images and routes structured, high-trust alerts directly to active desks
+                before reaching the city desk.
               </p>
               <a
                 href="#pipeline"
@@ -118,7 +61,9 @@ export function AboutPage() {
         </section>
 
         <PipelineSection />
+        <GeofenceSection />
         <NetworkSection />
+        <MonetizationSection />
 
         <footer
           id="console"
@@ -264,23 +209,24 @@ function PipelineSection() {
     {
       icon: Eye,
       label: '01 / Ingest',
-      title: 'One image becomes a structured ticket.',
+      title: 'Image becomes an instant ticket.',
       copy:
         'CivicOS removes dropdowns and text-heavy forms. A citizen image becomes an issue type, severity estimate, description, and source packet.',
     },
     {
       icon: Layers,
       label: '02 / Synthesize',
-      title: 'Vision and location become trust signals.',
+      title: 'Multi-vector calculations',
+
       copy:
         'The multimodal layer compares image confidence, coordinates, recency, and issue class so the city receives a scored signal instead of a raw complaint.',
     },
     {
       icon: ShieldCheck,
       label: '03 / Route',
-      title: 'Duplicates collapse before dispatch.',
+      title: 'Duplicate reports are clustered.',
       copy:
-        'Nearby repeated reports are clustered into one operational node, preserving citizen signal without flooding administrators with redundant tickets.',
+        'Nearby repeated reports are clustered into one operational node via PostGIS and database logic, preserving citizen signal without flooding administrators with redundant tickets.',
     },
   ]
 
@@ -292,10 +238,10 @@ function PipelineSection() {
       <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[380px_minmax(0,1fr)]">
         <FadeIn>
           <span className="block border-l-2 border-[#E11D2E] pl-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
-            [ PIPELINE // MULTIMODAL SYNTHESIS ]
+            [ PIPELINE ]
           </span>
           <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-            The reporting flow is compressed into three machine-readable moves.
+            The reporting flow consists of three moves.
           </h2>
           <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
             The approach is intentionally narrow: capture the physical condition, classify the
@@ -325,6 +271,155 @@ function PipelineSection() {
         <FadeIn delay={0.12} className="lg:col-span-2">
           <ImageRiskTimeline />
         </FadeIn>
+      </div>
+    </section>
+  )
+}
+
+function GeofenceSection() {
+  const boundary = CIVIC_GEOFENCES.find((fence) => fence.fenceType === 'boundary')
+  const wards = CIVIC_GEOFENCES.filter((fence) => fence.fenceType === 'ward')
+  const riskZones = CIVIC_GEOFENCES.filter((fence) => fence.fenceType === 'high_risk')
+  const spatialRules = [
+    {
+      icon: ShieldCheck,
+      label: '01 / Boundary Gate',
+      title: 'Outside reports are stopped before they enter the queue.',
+      copy:
+        'The upload point is checked against the municipal service boundary first, so CivicOS does not create operational noise for locations the city cannot dispatch against.',
+    },
+    {
+      icon: RadioTower,
+      label: '02 / Ward Router',
+      title: 'Valid reports inherit the desk responsible for that polygon.',
+      copy:
+        'A coordinate becomes a ward assignment, route label, and administrative owner without asking residents to understand city department boundaries.',
+    },
+    {
+      icon: MapPinned,
+      label: '03 / Risk Multiplier',
+      title: 'Known vulnerable zones add urgency to the trust score.',
+      copy:
+        'Flood-prone, drainage-sensitive, or repeat-failure areas can add a bounded spatial boost so the same image carries more operational weight in the right place.',
+    },
+  ]
+
+  return (
+    <section
+      id="geofence"
+      className="border-b border-zinc-200 bg-[#F2F1EE] px-6 py-36 dark:border-white/10 dark:bg-[#111111] md:px-16"
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-16 lg:grid-cols-[420px_minmax(0,1fr)]">
+          <FadeIn>
+            <span className="block border-l-2 border-[#E11D2E] pl-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+              [ GEOFENCE // WARD ROUTING ]
+            </span>
+            <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
+              Location is treated as a civic contract, not a pin on a map.
+            </h2>
+            <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
+              Before a report reaches administrators, CivicOS asks three questions: is it inside
+              the city boundary, which ward owns it, and does its location sit inside a known risk
+              zone?
+            </p>
+          </FadeIn>
+
+          <FadeIn
+            delay={0.08}
+            className="border border-zinc-200 bg-white dark:border-white/15 dark:bg-[#171717]"
+          >
+            <div className="border-b border-zinc-200 p-6 dark:border-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                    Service Boundary Model
+                  </p>
+                  <h3 className="mt-2 text-2xl font-black leading-[1.05] text-[#111111] dark:text-[#F2F1EE]">
+                    {boundary?.name ?? 'Municipal Service Boundary'}
+                  </h3>
+                </div>
+                <div className="border border-[#111111] bg-[#111111] px-4 py-3 text-white dark:border-[#F2F1EE]">
+                  <p className="font-mono text-[10px] font-black uppercase tracking-widest">
+                    {wards.length.toString().padStart(2, '0')} Wards
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="relative min-h-[430px] overflow-hidden border-b border-zinc-200 bg-[#F2F1EE] dark:border-white/10 dark:bg-[#111111] lg:border-b-0 lg:border-r">
+                <div className="absolute inset-8 border-2 border-[#111111] dark:border-[#F2F1EE]" />
+                <div className="absolute left-[12%] top-[18%] h-[62%] w-[39%] border border-dashed border-[#111111] bg-white/55 dark:border-white/35 dark:bg-white/5" />
+                <div className="absolute right-[12%] top-[18%] h-[62%] w-[36%] border border-dashed border-[#111111] bg-white/55 dark:border-white/35 dark:bg-white/5" />
+                <div className="absolute left-[45%] top-[45%] h-16 w-28 border-2 border-[#E11D2E] bg-[#E11D2E]/10" />
+                <div className="absolute left-[31%] top-[35%] h-4 w-4 border-2 border-[#111111] bg-white dark:border-[#F2F1EE] dark:bg-[#171717]" />
+                <div className="absolute left-[57%] top-[56%] h-4 w-4 border-2 border-[#E11D2E] bg-white dark:bg-[#171717]" />
+                <div className="absolute bottom-8 left-8 border border-[#111111] bg-white px-4 py-3 dark:border-white/20 dark:bg-[#171717]">
+                  <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                    +15 Spatial Risk
+                  </p>
+                  <p className="mt-1 max-w-[220px] text-sm font-black leading-tight text-[#111111] dark:text-[#F2F1EE]">
+                    Drainage vulnerability zone intersects incoming point.
+                  </p>
+                </div>
+                <div className="absolute right-8 top-8 border border-zinc-200 bg-white px-4 py-3 dark:border-white/15 dark:bg-[#171717]">
+                  <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#4A4A4A] dark:text-[#C9C2B8]">
+                    CivicOS Geofence Mock
+                  </p>
+                </div>
+              </div>
+
+              <div className="divide-y divide-zinc-200 dark:divide-white/10">
+                {CIVIC_GEOFENCES.map((fence) => (
+                  <article key={fence.id} className="p-5">
+                    <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                      {fence.fenceType.replace('_', ' ')}
+                    </p>
+                    <h4 className="mt-2 text-base font-black leading-tight text-[#111111] dark:text-[#F2F1EE]">
+                      {fence.name}
+                    </h4>
+                    <p className="mt-3 text-sm leading-[1.4] text-[#4A4A4A] dark:text-[#C9C2B8]">
+                      {fence.routeLabel ??
+                        (fence.riskBoost
+                          ? `Adds +${fence.riskBoost} risk points when matched.`
+                          : 'Defines valid municipal intake coverage.')}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {spatialRules.map(({ icon: Icon, label, title, copy }, index) => (
+            <FadeIn
+              key={label}
+              delay={0.06 * index}
+              className="border border-zinc-200 bg-white p-7 dark:border-white/15 dark:bg-[#171717]"
+            >
+              <Icon className="h-5 w-5 text-[#E11D2E]" />
+              <p className="mt-5 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                {label}
+              </p>
+              <h3 className="mt-4 text-xl font-black leading-[1.05] text-[#111111] dark:text-[#F2F1EE]">
+                {title}
+              </h3>
+              <p className="mt-5 text-sm leading-[1.5] text-[#4A4A4A] dark:text-[#C9C2B8]">
+                {copy}
+              </p>
+            </FadeIn>
+          ))}
+        </div>
+
+        {riskZones.length > 0 && (
+          <FadeIn className="mt-4 border border-[#E11D2E] bg-white p-5 dark:bg-[#171717]">
+            <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+              Active Risk Zone // {riskZones[0].name} // +{riskZones[0].riskBoost} points
+            </p>
+          </FadeIn>
+        )}
       </div>
     </section>
   )
@@ -377,6 +472,274 @@ function NetworkSection() {
             </div>
           </FadeIn>
         </div>
+      </div>
+    </section>
+  )
+}
+
+function MonetizationSection() {
+  const frictionSample = TRANSIT_FRICTION_SAMPLES[0]
+  const revenueSurfaces = [
+    {
+      icon: Network,
+      label: '01 / Dig-Once Coordination',
+      title: 'Bundle civic repairs with planned utility work.',
+      copy:
+        'When a pothole, leakage, or drainage report lands near a fiber or power corridor, CivicOS identifies a coordination window before two teams cut into the same road twice.',
+      stat: '$45K',
+      statLabel: 'Example avoided rework',
+    },
+    {
+      icon: Route,
+      label: '02 / Road-Friction API',
+      title: 'Package municipal hazard metadata for routing systems.',
+      copy:
+        'Verified civic hazards become structured route-friction signals for fleets, insurers, logistics teams, and transit operators that need to price or avoid local disruption.',
+      stat: `${frictionSample.frictionIndex.toFixed(1)}x`,
+      statLabel: 'Sample friction index',
+    },
+  ]
+
+  return (
+    <section
+      id="monetization"
+      className="border-b border-zinc-200 bg-white px-6 py-36 dark:border-white/10 dark:bg-[#111111] md:px-16"
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-16 lg:grid-cols-[420px_minmax(0,1fr)]">
+          <FadeIn>
+            <span className="block border-l-2 border-[#E11D2E] pl-3 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+              [ MONETIZATION // INFRASTRUCTURE COORDINATION ]
+            </span>
+            <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
+              The civic signal creates an infrastructure marketplace.
+            </h2>
+            <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
+              The user product stays simple: report a problem. The commercial layer sits behind the
+              city desk, matching verified repair demand with utility work, route-risk buyers, and
+              coordination APIs.
+            </p>
+          </FadeIn>
+
+          <FadeIn
+            delay={0.08}
+            className="border border-zinc-200 bg-[#F2F1EE] dark:border-white/15 dark:bg-[#171717]"
+          >
+            <div className="grid border-b border-zinc-200 bg-white dark:border-white/10 dark:bg-[#171717] md:grid-cols-3">
+              <div className="border-b border-zinc-200 p-6 dark:border-white/10 md:border-b-0 md:border-r">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  Utility Routes
+                </p>
+                <p className="mt-2 text-4xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  {String(DEMO_UTILITY_PLANS.length).padStart(2, '0')}
+                </p>
+              </div>
+              <div className="border-b border-zinc-200 p-6 dark:border-white/10 md:border-b-0 md:border-r">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  Hazards Priced
+                </p>
+                <p className="mt-2 text-4xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  {frictionSample.activeHazardsCount}
+                </p>
+              </div>
+              <div className="p-6">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  API Radius
+                </p>
+                <p className="mt-2 text-4xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  {frictionSample.radiusMeters}m
+                </p>
+              </div>
+            </div>
+
+            <div className="relative min-h-[460px] overflow-hidden bg-[#F2F1EE] dark:bg-[#111111]">
+              <div className="absolute inset-0 opacity-55 [background-image:linear-gradient(#D4D4D8_1px,transparent_1px),linear-gradient(90deg,#D4D4D8_1px,transparent_1px)] [background-size:54px_54px] dark:opacity-20" />
+
+              <svg
+                className="absolute inset-0 h-full w-full"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 5 56 C 24 48, 40 53, 52 47 S 80 31, 96 38"
+                  fill="none"
+                  stroke="#111111"
+                  strokeWidth="0.8"
+                  strokeOpacity="0.45"
+                />
+                <path
+                  d="M 20 8 C 34 24, 39 42, 46 58 S 61 82, 78 92"
+                  fill="none"
+                  stroke="#E11D2E"
+                  strokeWidth="0.8"
+                  strokeOpacity="0.75"
+                  strokeDasharray="2 1.5"
+                />
+                <path
+                  d="M 31 51 L 51 51 L 71 51"
+                  fill="none"
+                  stroke="#111111"
+                  strokeWidth="0.35"
+                  strokeOpacity="0.75"
+                />
+                <path
+                  d="M 51 51 L 51 72"
+                  fill="none"
+                  stroke="#111111"
+                  strokeWidth="0.35"
+                  strokeOpacity="0.75"
+                />
+              </svg>
+
+              <div className="absolute left-8 top-8 border border-[#111111] bg-white px-4 py-3 dark:border-white/20 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#111111] dark:text-[#F2F1EE]">
+                  Coordination Graph
+                </p>
+                <p className="mt-1 max-w-[230px] text-xs font-bold leading-snug text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  Verified city repairs are matched against private utility routes and route-risk
+                  buyers.
+                </p>
+              </div>
+
+              <div className="absolute right-8 top-8 z-10 border border-zinc-200 bg-white px-4 py-3 dark:border-white/15 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#111111] dark:text-[#F2F1EE]">
+                  Utility Corridor Inputs
+                </p>
+                <div className="mt-3 space-y-2">
+                  {DEMO_UTILITY_PLANS.map((plan, index) => (
+                    <div key={plan.id} className="flex items-center gap-2">
+                      <span
+                        className={`h-1.5 w-8 ${index === 1 ? 'border-t border-dashed border-[#E11D2E] bg-transparent' : 'bg-[#111111]'}`}
+                      />
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8]">
+                        {plan.companyName}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="absolute left-[10%] top-[45%] border border-[#111111] bg-white px-4 py-3 dark:border-white/20 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  01 / Verified Repair
+                </p>
+                <p className="mt-2 text-xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  Pothole Node
+                </p>
+                <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  92 trust // ward alpha
+                </p>
+              </div>
+
+              <div className="absolute left-[39%] top-[38%] border-2 border-[#E11D2E] bg-white px-4 py-3 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  02 / Match Window
+                </p>
+                <p className="mt-2 text-3xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  12m
+                </p>
+                <p className="mt-2 max-w-[180px] text-xs font-bold leading-snug text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  Planned fiber corridor intersects repair radius.
+                </p>
+              </div>
+
+              <div className="absolute right-[8%] top-[30%] border border-[#111111] bg-white px-4 py-3 dark:border-white/20 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  03A / Utility Buyer
+                </p>
+                <p className="mt-2 text-lg font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  Jio Fiber + City Works
+                </p>
+                <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  Avoid duplicate excavation
+                </p>
+              </div>
+
+              <div className="absolute right-[8%] bottom-[13%] border border-[#111111] bg-white px-4 py-3 dark:border-white/20 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  03B / API Buyer
+                </p>
+                <p className="mt-2 text-lg font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  Route Friction Feed
+                </p>
+                <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  {frictionSample.activeHazardsCount} hazards // {frictionSample.radiusMeters}m radius
+                </p>
+              </div>
+
+              <div className="absolute bottom-6 left-8 border border-[#111111] border-t-4 border-t-[#E11D2E] bg-white px-5 py-4 dark:border-white/20 dark:bg-[#171717]">
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                  Revenue Event
+                </p>
+                <p className="mt-1 text-3xl font-black leading-none text-[#111111] dark:text-[#F2F1EE]">
+                  $45,000
+                </p>
+                <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-widest text-[#4A4A4A] dark:text-[#C9C2B8]">
+                  Avoided rework from coordinated repair
+                </p>
+              </div>
+            </div>
+          </FadeIn>
+        </div>
+
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
+          {revenueSurfaces.map(({ icon: Icon, label, title, copy, stat, statLabel }, index) => (
+            <FadeIn
+              key={label}
+              delay={0.06 * index}
+              className="border border-zinc-200 bg-white p-8 dark:border-white/15 dark:bg-[#171717]"
+            >
+              <div className="flex items-start justify-between gap-8">
+                <div>
+                  <Icon className="h-5 w-5 text-[#E11D2E]" />
+                  <p className="mt-5 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                    {label}
+                  </p>
+                </div>
+                <div className="border border-[#111111] bg-[#111111] px-4 py-3 text-right text-white dark:border-white/30">
+                  <p className="font-mono text-2xl font-black leading-none">{stat}</p>
+                  <p className="mt-1 text-[9px] font-black uppercase tracking-widest">{statLabel}</p>
+                </div>
+              </div>
+              <h3 className="mt-8 text-2xl font-black leading-[1.05] text-[#111111] dark:text-[#F2F1EE]">
+                {title}
+              </h3>
+              <p className="mt-5 text-[15px] leading-[1.5] text-[#4A4A4A] dark:text-[#C9C2B8]">
+                {copy}
+              </p>
+            </FadeIn>
+          ))}
+        </div>
+
+        <FadeIn className="mt-4 grid border border-zinc-200 bg-white dark:border-white/15 dark:bg-[#171717] md:grid-cols-4">
+          {[
+            ['Input', 'Verified repair node'],
+            ['Spatial Join', 'Utility corridor within 12m'],
+            ['Commercial Match', 'City + utility dig-once window'],
+            ['Output', 'Coordination fee + route-risk API'],
+          ].map(([label, value], index) => (
+            <div
+              key={label}
+              className="border-b border-zinc-200 p-5 dark:border-white/10 md:border-b-0 md:border-r md:last:border-r-0"
+            >
+              <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                {String(index + 1).padStart(2, '0')} / {label}
+              </p>
+              <p className="mt-3 text-sm font-black leading-tight text-[#111111] dark:text-[#F2F1EE]">
+                {value}
+              </p>
+            </div>
+          ))}
+        </FadeIn>
+
+        <FadeIn className="mt-4 border border-[#E11D2E] bg-white p-5 dark:bg-[#171717]">
+          <p className="flex items-center gap-2 font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+            <DollarSign className="h-3.5 w-3.5" />
+            Revenue does not change the citizen workflow: one image still becomes one verified
+            municipal signal.
+          </p>
+        </FadeIn>
       </div>
     </section>
   )

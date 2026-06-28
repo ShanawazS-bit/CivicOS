@@ -3,7 +3,7 @@ import { Building2, Camera, Home, Newspaper } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const links = [
-  { to: '/', label: 'Home', icon: Home },
+  { to: '/home', label: 'Home', icon: Home },
   { to: '/feed', label: 'Feed', icon: Newspaper },
   { to: '/report', label: 'Report', icon: Camera },
   { to: '/admin', label: 'Admin', icon: Building2 },
@@ -19,7 +19,7 @@ export function BottomNav() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {links.map(({ to, label, icon: Icon }) => {
-          const active = pathname === to
+          const active = pathname === to || (to === '/home' && pathname === '/')
           return (
             <Link
               key={to}

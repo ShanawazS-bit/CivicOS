@@ -120,6 +120,8 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.get_issues_with_coords();
+
 CREATE OR REPLACE FUNCTION public.get_issues_with_coords()
 RETURNS TABLE (
     id UUID,

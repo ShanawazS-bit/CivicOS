@@ -10,13 +10,22 @@ import {
   DatabaseZap,
   FileText,
   MapPin,
+  Network,
   RadioTower,
+  Route,
   ScanEye,
   ShieldAlert,
+  Zap,
 } from 'lucide-react'
 import { AdminIncidentRow } from '@/components/AdminIncidentRow'
 import { detectCluster } from '@/lib/clusterDetection'
 import { CIVIC_GEOFENCES, type Geofence } from '@/lib/geofencing'
+import {
+  DEMO_UTILITY_PLANS,
+  TRANSIT_FRICTION_SAMPLES,
+  findDemoDigOnceOpportunities,
+  type DigOnceOpportunity,
+} from '@/lib/monetization'
 import { fetchIssues, subscribeToIssues } from '@/services/issueService'
 import type { Issue } from '@/types'
 
@@ -98,6 +107,18 @@ function trackingId(id: string): string {
   return `CIV-${id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toUpperCase()}`
 }
 
+function utilityPolylinePoints(route: Array<{ x: number; y: number }>): string {
+  return route.map((point) => `${point.x},${point.y}`).join(' ')
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 function trustMatrix(issue: Issue): TrustMatrixItem[] {
   const confidence = issue.confidence ?? Math.max(72, issue.trust_score - 5)
   return [
@@ -145,6 +166,7 @@ export function AdminPage() {
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [mapMode, setMapMode] = useState<'dispatch' | 'b2b'>('dispatch')
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -174,6 +196,12 @@ export function AdminPage() {
   const selectedIssue = sortedIssues.find((issue) => issue.id === selectedId) ?? sortedIssues[0]
   const clusterAlert = detectCluster(sortedIssues)
   const activeSignals = sortedIssues.filter((issue) => issue.status !== 'resolved').length
+  const digOnceOpportunities = useMemo(
+    () => findDemoDigOnceOpportunities(sortedIssues),
+    [sortedIssues]
+  )
+  const primaryOpportunity = digOnceOpportunities[0]
+  const totalSavings = digOnceOpportunities.reduce((sum, item) => sum + item.estimatedSavings, 0)
 
   return (
     <section className="h-screen overflow-hidden bg-[#F2F1EE] font-sans text-[#111111]">
@@ -237,14 +265,33 @@ export function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                  Geographic Intelligence Canvas
+                  {mapMode === 'b2b' ? 'B2B Infrastructure Coordinator' : 'Geographic Intelligence Canvas'}
                 </p>
-                <h2 className="mt-1 text-4xl font-black leading-none text-zinc-900">
-                  Municipal Signal Map
+                <h2
+                  className={`mt-1 font-black leading-none text-zinc-900 ${
+                    mapMode === 'b2b' ? 'text-3xl' : 'text-4xl'
+                  }`}
+                >
+                  {mapMode === 'b2b' ? 'Dig-Once Spatial Matchmaker' : 'Municipal Signal Map'}
                 </h2>
               </div>
               <div className="flex items-center gap-3">
-                {clusterAlert && (
+                <div className="flex border border-[#111111] bg-white p-1">
+                  {(['dispatch', 'b2b'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setMapMode(mode)}
+                      className={`flex h-8 items-center gap-2 px-3 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                        mapMode === mode ? 'bg-[#111111] text-white' : 'text-[#111111] hover:bg-zinc-100'
+                      }`}
+                    >
+                      {mode === 'dispatch' ? <MapPin className="h-3.5 w-3.5" /> : <Network className="h-3.5 w-3.5" />}
+                      {mode === 'dispatch' ? 'Dispatch' : 'B2B'}
+                    </button>
+                  ))}
+                </div>
+                {clusterAlert && mapMode === 'dispatch' && (
                   <div className="flex items-center gap-2 border border-[#E11D2E] bg-white px-3 py-2 text-[#E11D2E]">
                     <AlertTriangle className="h-4 w-4" />
                     <span className="text-[10px] font-black uppercase tracking-widest">
@@ -252,11 +299,13 @@ export function AdminPage() {
                     </span>
                   </div>
                 )}
-                <div className="border border-[#111111] bg-[#111111] px-4 py-2 text-white">
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider">
-                    EARTH 3D MOCK
-                  </span>
-                </div>
+                {mapMode === 'dispatch' && (
+                  <div className="border border-[#111111] bg-[#111111] px-4 py-2 text-white">
+                    <span className="font-mono text-[11px] font-bold uppercase tracking-wider">
+                      EARTH 3D MOCK
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -313,23 +362,94 @@ export function AdminPage() {
               <div className="absolute -bottom-2 left-2 h-2 w-full border-x border-b border-[#A7A196] bg-[#C8C3B7]" />
             </div>
 
-            {mapLabels.map((label, index) => (
-              <span
-                key={label}
-                className="absolute z-30 font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500"
-                style={{ left: `${12 + index * 16}%`, top: `${18 + (index % 3) * 21}%` }}
-              >
-                {label}
-              </span>
-            ))}
+            {mapMode === 'dispatch' &&
+              mapLabels.map((label, index) => (
+                <span
+                  key={label}
+                  className="absolute z-30 font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500"
+                  style={{ left: `${12 + index * 16}%`, top: `${18 + (index % 3) * 21}%` }}
+                >
+                  {label}
+                </span>
+              ))}
 
             <div className="absolute bottom-4 right-4 z-30 border border-[#111111] bg-white px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-[#111111]">
-              Geofence overlay // wards + high-risk zones
+              {mapMode === 'b2b'
+                ? `${DEMO_UTILITY_PLANS.length} utility routes // ${digOnceOpportunities.length} dig-once windows`
+                : 'Geofence overlay // wards + high-risk zones'}
             </div>
+
+            {mapMode === 'b2b' && (
+              <>
+                <svg
+                  className="pointer-events-none absolute inset-0 z-[35] h-full w-full"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  {DEMO_UTILITY_PLANS.map((plan) => (
+                    <polyline
+                      key={plan.id}
+                      points={utilityPolylinePoints(plan.route)}
+                      fill="none"
+                      stroke={plan.color}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1"
+                      strokeOpacity="0.4"
+                    />
+                  ))}
+                </svg>
+
+                <div className="absolute right-4 top-4 z-[45] w-52 border border-[#111111] bg-white">
+                  <div className="border-b border-[#111111] px-3 py-2">
+                    <p className="font-mono text-[10px] font-black uppercase tracking-widest text-zinc-900">
+                      Utility Corridors
+                    </p>
+                  </div>
+                  <div className="divide-y divide-zinc-200">
+                    {DEMO_UTILITY_PLANS.map((plan) => (
+                      <div key={plan.id} className="flex items-center gap-2 px-3 py-2">
+                        <span
+                          className="h-1.5 w-8 shrink-0"
+                          style={{ backgroundColor: plan.color }}
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate font-mono text-[10px] font-black uppercase tracking-widest text-zinc-900">
+                            {plan.companyName}
+                          </p>
+                          <p className="truncate text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                            {plan.utilityType}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {primaryOpportunity && (
+                  <div className="absolute bottom-16 left-1/2 z-50 flex -translate-x-1/2 items-center gap-5 border border-[#111111] border-t-4 border-t-[#E11D2E] bg-white px-4 py-3">
+                    <div>
+                      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                        <Zap className="h-3.5 w-3.5" />
+                        Dig-Once Candidate
+                      </p>
+                      <p className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        {primaryOpportunity.utilityPlan.companyName} // {primaryOpportunity.distanceMeters}m
+                      </p>
+                    </div>
+                    <p className="whitespace-nowrap text-xl font-black leading-none text-zinc-900">
+                      {formatCurrency(primaryOpportunity.estimatedSavings)}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             {sortedIssues.map((issue, index) => {
               const position = normalizeMarker(issue, index, sortedIssues)
               const active = selectedIssue?.id === issue.id
+              const mutedInB2B = mapMode === 'b2b' && primaryOpportunity?.issue.id !== issue.id
               return (
                 <button
                   key={issue.id}
@@ -338,7 +458,7 @@ export function AdminPage() {
                   onClick={() => setSelectedId(issue.id)}
                   className={`absolute z-40 flex -translate-x-1/2 -translate-y-1/2 items-stretch border border-[#111111] bg-white font-mono text-[10px] font-black uppercase tracking-wider ring-4 ring-white/80 transition-transform hover:scale-110 ${
                     active ? 'bg-[#E11D2E] text-white' : 'text-[#111111]'
-                  }`}
+                  } ${mutedInB2B ? 'opacity-35' : ''}`}
                   style={{
                     left: `${position.x}%`,
                     top: `${position.y}%`,
@@ -356,7 +476,7 @@ export function AdminPage() {
               )
             })}
 
-            {selectedIssue && (
+            {selectedIssue && mapMode === 'dispatch' && (
               <div
                 data-testid="selected-map-node"
                 className="absolute bottom-6 left-6 z-50 border border-[#111111] border-t-4 border-t-[#E11D2E] bg-white px-5 py-4"
@@ -384,95 +504,106 @@ export function AdminPage() {
             <div>
               <div className="sticky top-0 z-10 border-b-2 border-[#111111] bg-white px-5 py-4">
                 <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                  Deep Inspection Node
+                  {mapMode === 'b2b' ? 'Revenue Intelligence' : 'Deep Inspection Node'}
                 </p>
                 <h2 className="mt-2 text-3xl font-black leading-none text-zinc-900">
-                  {selectedIssue.issue_type}
+                  {mapMode === 'b2b' ? 'Monetization' : selectedIssue.issue_type}
                 </h2>
               </div>
 
-              <VisualEvidence issue={selectedIssue} />
+              {mapMode === 'dispatch' && <VisualEvidence issue={selectedIssue} />}
 
-              <div className="space-y-6 px-5 py-5">
-                <section className="border border-zinc-200 bg-white">
-                  <div className="border-b border-zinc-200 px-4 py-3">
-                    <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                      <ScanEye className="h-4 w-4" />
-                      Gemini Parsed Payload
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200">
-                    <Metric label="Trust" value={`${selectedIssue.trust_score}`} />
-                    <Metric label="Confidence" value={`${selectedIssue.confidence ?? 88}%`} />
-                  </div>
-                  <div className="px-4 py-4">
-                    <p className="text-sm leading-relaxed text-zinc-700">
-                      {selectedIssue.description ??
-                        'Gemini detected a municipal infrastructure anomaly requiring validation.'}
-                    </p>
-                    <p className="mt-4 font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-                      {trackingId(selectedIssue.id)} // {new Date(selectedIssue.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </section>
-
-                <section className="border border-zinc-200 bg-white">
-                  <div className="border-b border-zinc-200 px-4 py-3">
-                    <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                      <FileText className="h-4 w-4" />
-                      Complete Text Transcript
-                    </p>
-                  </div>
-                  <p className="px-4 py-4 text-base font-medium leading-relaxed text-zinc-900">
-                    {selectedIssue.description ??
-                      'No citizen transcript supplied. Visual analysis remains available for dispatch verification.'}
-                  </p>
-                </section>
-
-                <section className="border border-zinc-200 bg-white">
-                  <div className="border-b border-zinc-200 px-4 py-3">
-                    <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                      <BrainCircuit className="h-4 w-4" />
-                      Trust Engine Matrix
-                    </p>
-                  </div>
-                  <div className="divide-y divide-zinc-200">
-                    {trustMatrix(selectedIssue).map((item) => (
-                      <div key={item.label} className="px-4 py-4">
-                        <div className="mb-2 flex items-center justify-between gap-4">
-                          <p className="text-xs font-black uppercase tracking-wider text-zinc-900">
-                            {item.label}
-                          </p>
-                          <span className="font-mono text-sm font-black text-[#E11D2E]">
-                            {item.value}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-[#F2F1EE]">
-                          <div className="h-full bg-[#111111]" style={{ width: `${item.value}%` }} />
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed text-zinc-500">{item.note}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="grid grid-cols-2 border border-zinc-200 bg-white">
-                  <Action icon={BadgeCheck} label="Status" value={selectedIssue.status.replace('_', ' ')} />
-                  <Action icon={MapPin} label="Location" value={selectedIssue.lat ? 'Pinned' : 'Estimated'} />
-                  <Action icon={ShieldAlert} label="Ward" value={selectedIssue.ward_name ?? 'Manual routing'} />
-                  <Action
-                    icon={AlertTriangle}
-                    label="Geofence Risk"
-                    value={
-                      selectedIssue.spatial_risk_boost
-                        ? `+${selectedIssue.spatial_risk_boost} high-risk boost`
-                        : 'No multiplier'
-                    }
+              <div className="space-y-5 px-5 py-5">
+                {mapMode === 'b2b' && (
+                  <MonetizationPanel
+                    opportunities={digOnceOpportunities}
+                    totalSavings={totalSavings}
                   />
-                  <Action icon={RadioTower} label="Dispatch" value={statusCopy(selectedIssue)} wide />
-                  <Action icon={DatabaseZap} label="Source" value="Gemini ingestion cache" />
-                  <Action icon={Clock3} label="SLA" value={selectedIssue.trust_score >= 88 ? 'Immediate' : 'Queued'} />
-                </section>
+                )}
+
+                {mapMode === 'dispatch' && (
+                  <>
+                    <section className="border border-zinc-200 bg-white">
+                      <div className="border-b border-zinc-200 px-4 py-3">
+                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+                          <ScanEye className="h-4 w-4" />
+                          Gemini Parsed Payload
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200">
+                        <Metric label="Trust" value={`${selectedIssue.trust_score}`} />
+                        <Metric label="Confidence" value={`${selectedIssue.confidence ?? 88}%`} />
+                      </div>
+                      <div className="px-4 py-4">
+                        <p className="text-sm leading-relaxed text-zinc-700">
+                          {selectedIssue.description ??
+                            'Gemini detected a municipal infrastructure anomaly requiring validation.'}
+                        </p>
+                        <p className="mt-4 font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                          {trackingId(selectedIssue.id)} // {new Date(selectedIssue.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </section>
+
+                    <section className="border border-zinc-200 bg-white">
+                      <div className="border-b border-zinc-200 px-4 py-3">
+                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+                          <FileText className="h-4 w-4" />
+                          Complete Text Transcript
+                        </p>
+                      </div>
+                      <p className="px-4 py-4 text-base font-medium leading-relaxed text-zinc-900">
+                        {selectedIssue.description ??
+                          'No citizen transcript supplied. Visual analysis remains available for dispatch verification.'}
+                      </p>
+                    </section>
+
+                    <section className="border border-zinc-200 bg-white">
+                      <div className="border-b border-zinc-200 px-4 py-3">
+                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+                          <BrainCircuit className="h-4 w-4" />
+                          Trust Engine Matrix
+                        </p>
+                      </div>
+                      <div className="divide-y divide-zinc-200">
+                        {trustMatrix(selectedIssue).map((item) => (
+                          <div key={item.label} className="px-4 py-4">
+                            <div className="mb-2 flex items-center justify-between gap-4">
+                              <p className="text-xs font-black uppercase tracking-wider text-zinc-900">
+                                {item.label}
+                              </p>
+                              <span className="font-mono text-sm font-black text-[#E11D2E]">
+                                {item.value}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-[#F2F1EE]">
+                              <div className="h-full bg-[#111111]" style={{ width: `${item.value}%` }} />
+                            </div>
+                            <p className="mt-2 text-xs leading-relaxed text-zinc-500">{item.note}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="grid grid-cols-2 border border-zinc-200 bg-white">
+                      <Action icon={BadgeCheck} label="Status" value={selectedIssue.status.replace('_', ' ')} />
+                      <Action icon={MapPin} label="Location" value={selectedIssue.lat ? 'Pinned' : 'Estimated'} />
+                      <Action icon={ShieldAlert} label="Ward" value={selectedIssue.ward_name ?? 'Manual routing'} />
+                      <Action
+                        icon={AlertTriangle}
+                        label="Geofence Risk"
+                        value={
+                          selectedIssue.spatial_risk_boost
+                            ? `+${selectedIssue.spatial_risk_boost} high-risk boost`
+                            : 'No multiplier'
+                        }
+                      />
+                      <Action icon={RadioTower} label="Dispatch" value={statusCopy(selectedIssue)} wide />
+                      <Action icon={DatabaseZap} label="Source" value="Gemini ingestion cache" />
+                      <Action icon={Clock3} label="SLA" value={selectedIssue.trust_score >= 88 ? 'Immediate' : 'Queued'} />
+                    </section>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -486,6 +617,94 @@ export function AdminPage() {
             </div>
           )}
         </aside>
+      </div>
+    </section>
+  )
+}
+
+function MonetizationPanel({
+  opportunities,
+  totalSavings,
+}: {
+  opportunities: DigOnceOpportunity[]
+  totalSavings: number
+}) {
+  const topTransitSample = TRANSIT_FRICTION_SAMPLES[0]
+
+  return (
+    <section className="border border-zinc-200 bg-white">
+      <div className="border-b border-zinc-200 px-4 py-3">
+        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+          <Network className="h-4 w-4" />
+          Dig-Once Coordination
+        </p>
+        <p className="mt-2 text-sm font-bold leading-tight text-zinc-600">
+          Nearby utility work is matched against the selected municipal repair window.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200">
+        <Metric label="Savings Pipeline" value={formatCurrency(totalSavings)} />
+        <Metric label="Joint Projects" value={`${opportunities.length}`} />
+      </div>
+
+      <div className="divide-y divide-zinc-200">
+        {opportunities.slice(0, 2).map((opportunity) => (
+          <article key={opportunity.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
+                {opportunity.utilityPlan.companyName} // {opportunity.distanceMeters}m match
+              </p>
+              <h3 className="mt-2 text-base font-black leading-tight text-zinc-900">
+                {opportunity.issue.issue_type} + {opportunity.utilityPlan.utilityType}
+              </h3>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="font-mono text-lg font-black leading-none text-zinc-900">
+                {formatCurrency(opportunity.estimatedSavings)}
+              </p>
+              <p className="mt-1 font-mono text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                avoided rework
+              </p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="border-t border-zinc-200 bg-[#F2F1EE] px-4 py-3">
+        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+          <Route className="h-4 w-4" />
+          Transit API Sample
+        </p>
+        <div className="mt-3 grid grid-cols-3 border border-zinc-200 bg-white">
+          <div className="border-r border-zinc-200 px-3 py-3">
+            <p className="font-mono text-xl font-black leading-none text-zinc-900">
+              {topTransitSample.frictionIndex.toFixed(1)}x
+            </p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+              Friction
+            </p>
+          </div>
+          <div className="border-r border-zinc-200 px-3 py-3">
+            <p className="font-mono text-xl font-black leading-none text-zinc-900">
+              {topTransitSample.activeHazardsCount}
+            </p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+              Hazards
+            </p>
+          </div>
+          <div className="px-3 py-3">
+            <p className="font-mono text-xl font-black leading-none text-zinc-900">
+              {topTransitSample.radiusMeters}m
+            </p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+              Radius
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-zinc-600">
+          Returns hazard metadata that third-party routing engines can price, avoid, or reroute around.
+        </p>
       </div>
     </section>
   )
