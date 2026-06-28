@@ -84,16 +84,64 @@ export const TRANSIT_FRICTION_SAMPLES: RouteFrictionSample[] = [
   },
 ]
 
+function distancePointToLineSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const l2 = (bx - ax) ** 2 + (by - ay) ** 2
+  if (l2 === 0) return Math.sqrt((px - ax) ** 2 + (py - ay) ** 2)
+  let t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / l2
+  t = Math.max(0, Math.min(1, t))
+  const projX = ax + t * (bx - ax)
+  const projY = ay + t * (by - ay)
+  return Math.sqrt((px - projX) ** 2 + (py - projY) ** 2)
+}
+
+function computeDistanceMeters(lat: number, lng: number, plan: UtilityPlan): number {
+  let minDistance = Infinity
+  for (let i = 0; i < plan.route.length - 1; i++) {
+    const a = plan.route[i]
+    const b = plan.route[i + 1]
+    const distDeg = distancePointToLineSegment(lng, lat, a.lng, a.lat, b.lng, b.lat)
+    if (distDeg < minDistance) minDistance = distDeg
+  }
+  return minDistance * 111139 // Roughly 111km per degree
+}
+
 export function findDemoDigOnceOpportunities(issues: Issue[]): DigOnceOpportunity[] {
   const activeExcavationIssues = issues.filter(
-    (issue) => issue.status !== 'resolved' && EXCAVATION_TRIGGER_TYPES.has(issue.issue_type)
+    (issue) =>
+      issue.status !== 'resolved' &&
+      EXCAVATION_TRIGGER_TYPES.has(issue.issue_type) &&
+      typeof issue.lat === 'number' &&
+      typeof issue.lng === 'number'
   )
 
-  return activeExcavationIssues.slice(0, 3).map((issue, index) => ({
-    id: `dig-once-${issue.id}`,
-    issue,
-    utilityPlan: DEMO_UTILITY_PLANS[index % DEMO_UTILITY_PLANS.length],
-    estimatedSavings: index === 0 ? 45000 : 28000,
-    distanceMeters: index === 0 ? 12 : 18,
-  }))
+  const opportunities: DigOnceOpportunity[] = []
+
+  for (const issue of activeExcavationIssues) {
+    if (typeof issue.lat !== 'number' || typeof issue.lng !== 'number') continue
+
+    let bestPlan = DEMO_UTILITY_PLANS[0]
+    let minDistance = Infinity
+
+    for (const plan of DEMO_UTILITY_PLANS) {
+      const dist = computeDistanceMeters(issue.lat, issue.lng, plan)
+      if (dist < minDistance) {
+        minDistance = dist
+        bestPlan = plan
+      }
+    }
+
+    // Match if within ~200 meters of the utility route
+    if (minDistance < 200) {
+      opportunities.push({
+        id: `dig-once-${issue.id}`,
+        issue,
+        utilityPlan: bestPlan,
+        estimatedSavings: Math.max(5000, Math.round(50000 - minDistance * 100)),
+        distanceMeters: Math.round(minDistance),
+      })
+    }
+  }
+
+  // Sort by highest savings (closest distance) and take top 5
+  return opportunities.sort((a, b) => b.estimatedSavings - a.estimatedSavings).slice(0, 5)
 }
