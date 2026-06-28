@@ -21,9 +21,9 @@ import { AdminIncidentRow } from '@/components/AdminIncidentRow'
 import { detectCluster } from '@/lib/clusterDetection'
 import { CIVIC_GEOFENCES, type Geofence } from '@/lib/geofencing'
 import {
-  DEMO_UTILITY_PLANS,
   TRANSIT_FRICTION_SAMPLES,
-  findDemoDigOnceOpportunities,
+  generatePredictedCorridors,
+  findDigOnceOpportunities,
   type DigOnceOpportunity,
 } from '@/lib/monetization'
 import { cleanDescription } from '@/lib/formatters'
@@ -206,9 +206,10 @@ export function AdminPage() {
   const selectedIssue = sortedIssues.find((issue) => issue.id === selectedId) ?? sortedIssues[0]
   const clusterAlert = detectCluster(sortedIssues)
   const activeSignals = sortedIssues.filter((issue) => issue.status !== 'resolved').length
+  const predictedPlans = useMemo(() => generatePredictedCorridors(sortedIssues), [sortedIssues])
   const digOnceOpportunities = useMemo(
-    () => findDemoDigOnceOpportunities(sortedIssues),
-    [sortedIssues]
+    () => findDigOnceOpportunities(sortedIssues, predictedPlans),
+    [sortedIssues, predictedPlans]
   )
   const primaryOpportunity = digOnceOpportunities[0]
   const totalSavings = digOnceOpportunities.reduce((sum, item) => sum + item.estimatedSavings, 0)
@@ -402,7 +403,7 @@ export function AdminPage() {
 
             <div className="absolute bottom-4 right-4 z-30 border border-[#111111] bg-white px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-[#111111]">
               {mapMode === 'b2b'
-                ? `${DEMO_UTILITY_PLANS.length} utility routes // ${digOnceOpportunities.length} dig-once windows`
+                ? `${predictedPlans.length} utility routes // ${digOnceOpportunities.length} dig-once windows`
                 : 'Geofence overlay // wards + high-risk zones'}
             </div>
 
@@ -414,7 +415,7 @@ export function AdminPage() {
                   preserveAspectRatio="none"
                   aria-hidden="true"
                 >
-                  {DEMO_UTILITY_PLANS.map((plan) => (
+                  {predictedPlans.map((plan) => (
                     <polyline
                       key={plan.id}
                       points={utilityPolylinePoints(plan.route)}
@@ -435,7 +436,7 @@ export function AdminPage() {
                     </p>
                   </div>
                   <div className="divide-y divide-zinc-200">
-                    {DEMO_UTILITY_PLANS.map((plan) => (
+                    {predictedPlans.map((plan) => (
                       <div key={plan.id} className="flex items-center gap-2 px-3 py-2">
                         <span
                           className="h-1.5 w-8 shrink-0"

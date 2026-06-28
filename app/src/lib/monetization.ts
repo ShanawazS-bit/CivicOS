@@ -30,36 +30,92 @@ export interface RouteFrictionSample {
 
 export const EXCAVATION_TRIGGER_TYPES = new Set(['Water Leakage', 'Drainage', 'Pothole'])
 
-export const DEMO_UTILITY_PLANS: UtilityPlan[] = [
-  {
-    id: 'utility-jio-fiber-core',
-    companyName: 'Jio Fiber',
-    utilityType: 'Fiber Optic',
-    plannedStartDate: '2026-07-08',
-    color: '#2563EB',
-    route: [
-      { x: 8, y: 31, lat: 22.7964, lng: 86.1941 },
-      { x: 27, y: 36, lat: 22.7952, lng: 86.1992 },
-      { x: 48, y: 44, lat: 22.7939, lng: 86.2047 },
-      { x: 68, y: 53, lat: 22.7924, lng: 86.2101 },
-      { x: 92, y: 61, lat: 22.7912, lng: 86.2168 },
-    ],
-  },
-  {
-    id: 'utility-tata-power-feeder',
-    companyName: 'Tata Power',
-    utilityType: 'Underground Power',
-    plannedStartDate: '2026-07-16',
-    color: '#F97316',
-    route: [
-      { x: 57, y: 8, lat: 22.8081, lng: 86.2075 },
-      { x: 54, y: 28, lat: 22.8008, lng: 86.2068 },
-      { x: 51, y: 47, lat: 22.7935, lng: 86.2059 },
-      { x: 46, y: 68, lat: 22.7864, lng: 86.2047 },
-      { x: 42, y: 91, lat: 22.7812, lng: 86.2038 },
-    ],
-  },
-]
+export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
+  const drainagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'drainage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
+  const leakagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'water leakage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
+
+  const lats = issues.map(i => i.lat).filter((l): l is number => typeof l === 'number');
+  const lngs = issues.map(i => i.lng).filter((l): l is number => typeof l === 'number');
+  
+  if (lats.length < 2 || lngs.length < 2) return [];
+
+  const bounds = {
+    latMin: Math.min(...lats),
+    latMax: Math.max(...lats),
+    lngMin: Math.min(...lngs),
+    lngMax: Math.max(...lngs)
+  };
+
+  const projectToSvg = (lat: number, lng: number) => {
+    const x = bounds.lngMax === bounds.lngMin ? 50 : 16 + ((lng - bounds.lngMin) / (bounds.lngMax - bounds.lngMin)) * 68
+    const y = bounds.latMax === bounds.latMin ? 50 : 82 - ((lat - bounds.latMin) / (bounds.latMax - bounds.latMin)) * 64
+    return { x, y }
+  }
+
+  const calculateRoute = (points: {lat: number, lng: number}[]) => {
+    if (points.length < 2) return [];
+
+    let sumX = 0, sumY = 0;
+    for (const p of points) { sumX += p.lng; sumY += p.lat; }
+    const meanX = sumX / points.length;
+    const meanY = sumY / points.length;
+
+    let num = 0, den = 0;
+    for (const p of points) {
+      num += (p.lng - meanX) * (p.lat - meanY);
+      den += (p.lng - meanX) ** 2;
+    }
+
+    if (den === 0) {
+      const minLat = Math.min(...points.map(p => p.lat));
+      const maxLat = Math.max(...points.map(p => p.lat));
+      return [
+        { lng: meanX, lat: minLat, ...projectToSvg(minLat, meanX) },
+        { lng: meanX, lat: maxLat, ...projectToSvg(maxLat, meanX) }
+      ];
+    } else {
+      const m = num / den;
+      const b = meanY - m * meanX;
+      const minLng = Math.min(...points.map(p => p.lng));
+      const maxLng = Math.max(...points.map(p => p.lng));
+      
+      const padding = (maxLng - minLng) * 0.1;
+      const startLng = minLng - padding;
+      const endLng = maxLng + padding;
+      
+      return [
+        { lng: startLng, lat: m * startLng + b, ...projectToSvg(m * startLng + b, startLng) },
+        { lng: endLng, lat: m * endLng + b, ...projectToSvg(m * endLng + b, endLng) }
+      ];
+    }
+  }
+
+  const plans: UtilityPlan[] = [];
+
+  if (drainagePoints.length >= 2) {
+    plans.push({
+      id: 'utility-drainage-prediction',
+      companyName: 'Jio Fiber',
+      utilityType: 'AI Recommended Fiber Route',
+      plannedStartDate: new Date().toISOString().split('T')[0],
+      color: '#2563EB',
+      route: calculateRoute(drainagePoints)
+    });
+  }
+
+  if (leakagePoints.length >= 2) {
+    plans.push({
+      id: 'utility-water-prediction',
+      companyName: 'Tata Power',
+      utilityType: 'AI Recommended Power Feeder',
+      plannedStartDate: new Date().toISOString().split('T')[0],
+      color: '#F97316',
+      route: calculateRoute(leakagePoints)
+    });
+  }
+
+  return plans;
+}
 
 export const TRANSIT_FRICTION_SAMPLES: RouteFrictionSample[] = [
   {
@@ -105,7 +161,7 @@ function computeDistanceMeters(lat: number, lng: number, plan: UtilityPlan): num
   return minDistance * 111139 // Roughly 111km per degree
 }
 
-export function findDemoDigOnceOpportunities(issues: Issue[]): DigOnceOpportunity[] {
+export function findDigOnceOpportunities(issues: Issue[], plans: UtilityPlan[]): DigOnceOpportunity[] {
   const activeExcavationIssues = issues.filter(
     (issue) =>
       issue.status !== 'resolved' &&
@@ -118,11 +174,13 @@ export function findDemoDigOnceOpportunities(issues: Issue[]): DigOnceOpportunit
 
   for (const issue of activeExcavationIssues) {
     if (typeof issue.lat !== 'number' || typeof issue.lng !== 'number') continue
+    if (plans.length === 0) continue
 
-    let bestPlan = DEMO_UTILITY_PLANS[0]
+    let bestPlan = plans[0]
     let minDistance = Infinity
 
-    for (const plan of DEMO_UTILITY_PLANS) {
+    for (const plan of plans) {
+      if (plan.route.length < 2) continue
       const dist = computeDistanceMeters(issue.lat, issue.lng, plan)
       if (dist < minDistance) {
         minDistance = dist
