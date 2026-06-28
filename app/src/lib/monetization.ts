@@ -83,7 +83,30 @@ export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
     return { x, y }
   }
 
-  const calculateRoute = (points: {lat: number, lng: number}[]) => {
+  const findDensestCluster = (points: {lat: number, lng: number}[], radiusDeg = 0.006) => {
+    if (points.length < 3) return points;
+    let bestCluster: {lat: number, lng: number}[] = [];
+    
+    for (let i = 0; i < points.length; i++) {
+      const center = points[i];
+      const cluster = [center];
+      for (let j = 0; j < points.length; j++) {
+        if (i === j) continue;
+        const p = points[j];
+        const dist = Math.sqrt((p.lat - center.lat)**2 + (p.lng - center.lng)**2);
+        if (dist <= radiusDeg) {
+          cluster.push(p);
+        }
+      }
+      if (cluster.length > bestCluster.length) {
+        bestCluster = cluster;
+      }
+    }
+    return bestCluster.length >= 3 ? bestCluster : points;
+  }
+
+  const calculateRoute = (allPoints: {lat: number, lng: number}[]) => {
+    const points = findDensestCluster(allPoints, 0.008); // roughly 900m radius
     if (points.length < 2) return [];
 
     let sumX = 0, sumY = 0;
@@ -110,7 +133,7 @@ export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
       const minLng = Math.min(...points.map(p => p.lng));
       const maxLng = Math.max(...points.map(p => p.lng));
       
-      const padding = (maxLng - minLng) * 0.1;
+      const padding = (maxLng - minLng) * 0.15;
       const startLng = minLng - padding;
       const endLng = maxLng + padding;
       
