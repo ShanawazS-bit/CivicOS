@@ -30,6 +30,37 @@ export interface RouteFrictionSample {
 
 export const EXCAVATION_TRIGGER_TYPES = new Set(['Water Leakage', 'Drainage', 'Pothole'])
 
+export const DEMO_UTILITY_PLANS: UtilityPlan[] = [
+  {
+    id: 'utility-jio-fiber-core',
+    companyName: 'Jio Fiber',
+    utilityType: 'Fiber Optic',
+    plannedStartDate: '2026-07-08',
+    color: '#2563EB',
+    route: [
+      { x: 8, y: 31, lat: 22.7964, lng: 86.1941 },
+      { x: 27, y: 36, lat: 22.7952, lng: 86.1992 },
+      { x: 48, y: 44, lat: 22.7939, lng: 86.2047 },
+      { x: 68, y: 53, lat: 22.7924, lng: 86.2101 },
+      { x: 92, y: 61, lat: 22.7912, lng: 86.2168 },
+    ],
+  },
+  {
+    id: 'utility-tata-power-feeder',
+    companyName: 'Tata Power',
+    utilityType: 'Underground Power',
+    plannedStartDate: '2026-07-16',
+    color: '#F97316',
+    route: [
+      { x: 57, y: 8, lat: 22.8081, lng: 86.2075 },
+      { x: 54, y: 28, lat: 22.8008, lng: 86.2068 },
+      { x: 51, y: 47, lat: 22.7935, lng: 86.2059 },
+      { x: 46, y: 68, lat: 22.7864, lng: 86.2047 },
+      { x: 42, y: 91, lat: 22.7812, lng: 86.2038 },
+    ],
+  },
+]
+
 export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
   const drainagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'drainage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
   const leakagePoints = issues.filter(i => i.issue_type.toLowerCase() === 'water leakage' && i.lat && i.lng).map(i => ({lat: i.lat as number, lng: i.lng as number}));
