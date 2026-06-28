@@ -61,9 +61,10 @@ export const DEMO_UTILITY_PLANS: UtilityPlan[] = [
   },
 ]
 
-export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
-  const lats = issues.map(i => i.lat).filter((l): l is number => typeof l === 'number');
-  const lngs = issues.map(i => i.lng).filter((l): l is number => typeof l === 'number');
+export function generatePredictedCorridors(issues: Issue[], referenceIssues?: Issue[]): UtilityPlan[] {
+  const refIssues = referenceIssues && referenceIssues.length > 0 ? referenceIssues : issues;
+  const lats = refIssues.map(i => i.lat).filter((l): l is number => typeof l === 'number');
+  const lngs = refIssues.map(i => i.lng).filter((l): l is number => typeof l === 'number');
   
   if (lats.length < 2 || lngs.length < 2) return [];
 
@@ -157,7 +158,15 @@ export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
 
   const plans: UtilityPlan[] = [];
   const colors = ['#2563EB', '#F97316', '#10B981']; // Blue, Orange, Green
-  const companyNames = ['Jio Fiber', 'Tata Power', 'City Water Board'];
+
+  const getCompanyName = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('water') || t.includes('drain')) return 'City Water Board';
+    if (t.includes('light') || t.includes('power') || t.includes('electric')) return 'Tata Power';
+    if (t.includes('pothole') || t.includes('road') || t.includes('street')) return 'Dept of Transport';
+    if (t.includes('waste') || t.includes('dump') || t.includes('trash')) return 'Sanitation Dept';
+    return 'Municipal Works';
+  };
 
   for (let i = 0; i < sortedGroups.length; i++) {
     const [type, points] = sortedGroups[i];
@@ -165,10 +174,10 @@ export function generatePredictedCorridors(issues: Issue[]): UtilityPlan[] {
     if (route.length > 0) {
       plans.push({
         id: `utility-prediction-${type.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
-        companyName: companyNames[i],
+        companyName: getCompanyName(type),
         utilityType: `AI Predicted ${type} Corridor`,
         plannedStartDate: new Date().toISOString().split('T')[0],
-        color: colors[i],
+        color: colors[i % colors.length],
         route
       });
     }

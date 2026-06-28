@@ -2,23 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
-  AlertTriangle,
   ArrowLeft,
-  BadgeCheck,
-  BrainCircuit,
-  Clock3,
-  DatabaseZap,
-  FileText,
   MapPin,
   Network,
-  RadioTower,
   Route,
-  ScanEye,
   ShieldAlert,
   Zap,
 } from 'lucide-react'
 import { AdminIncidentRow } from '@/components/AdminIncidentRow'
-import { detectCluster } from '@/lib/clusterDetection'
+import { IssueModal } from '@/components/IssueModal'
 import { CIVIC_GEOFENCES, type Geofence } from '@/lib/geofencing'
 import {
   TRANSIT_FRICTION_SAMPLES,
@@ -26,15 +18,8 @@ import {
   findDigOnceOpportunities,
   type DigOnceOpportunity,
 } from '@/lib/monetization'
-import { cleanDescription } from '@/lib/formatters'
 import { fetchIssues, subscribeToIssues } from '@/services/issueService'
 import type { Issue } from '@/types'
-
-interface TrustMatrixItem {
-  label: string
-  value: number
-  note: string
-}
 
 const mapLabels = ['CIVIC CORE', 'ARTERIAL', 'DRAINAGE GRID', 'MARKET EDGE', 'TRANSIT LINE']
 
@@ -120,56 +105,15 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
-function trustMatrix(issue: Issue): TrustMatrixItem[] {
-  const confidence = issue.confidence ?? Math.max(72, issue.trust_score - 5)
-  return [
-    {
-      label: 'Gemini Vision Confidence',
-      value: confidence,
-      note: 'Image classification and object-state match',
-    },
-    {
-      label: 'Geo-Spatial Plausibility',
-      value: issue.lat && issue.lng ? 96 : 78,
-      note: issue.ward_name
-        ? `Inside ${issue.ward_name}; routed to ${issue.route_label ?? 'ward operations'}`
-        : 'Coordinate integrity against municipal grid',
-    },
-    {
-      label: 'Geofence Risk Multiplier',
-      value: Math.min(100, 70 + (issue.spatial_risk_boost ?? 0) * 2),
-      note: issue.spatial_risk_boost
-        ? `High-risk zone boost applied: +${issue.spatial_risk_boost}`
-        : 'No high-risk municipal zone overlap detected',
-    },
-    {
-      label: 'Duplicate Suppression',
-      value: Math.max(64, 100 - Math.abs(issue.trust_score - 82)),
-      note: 'Nearby report collision and decay analysis',
-    },
-    {
-      label: 'Dispatch Urgency',
-      value: issue.trust_score,
-      note: 'Severity, public risk, and recency weighted',
-    },
-  ]
-}
-
-function statusCopy(issue: Issue): string {
-  if (issue.status === 'resolved') return 'Resolution packet closed and archived for ward review.'
-  if (issue.status === 'in_progress') return 'Field team attached. Awaiting final remediation proof.'
-  if (issue.status === 'verified') return 'Verified signal. Eligible for immediate municipal dispatch.'
-  if (issue.status === 'assigned') return 'Assigned to ward operations with active response timer.'
-  return 'Pending senior desk verification before dispatch release.'
-}
-
 export function AdminPage() {
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [popupIssueId, setPopupIssueId] = useState<string | null>(null)
   const [mapMode, setMapMode] = useState<'dispatch' | 'b2b'>('dispatch')
-  const [filterType, setFilterType] = useState<string>('ALL')
-  const [mlFilterType, setMlFilterType] = useState<string>('ALL')
+  const [filterTypes, setFilterTypes] = useState<string[]>([])
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([])
+  const [activeNodeIds, setActiveNodeIds] = useState<string[]>([])
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -194,31 +138,41 @@ export function AdminPage() {
 
   const sortedIssues = useMemo(() => {
     let filtered = [...issues]
-    if (filterType !== 'ALL') {
-      filtered = filtered.filter((i) => i.issue_type === filterType)
+    if (filterTypes.length > 0) {
+      filtered = filtered.filter((i) => filterTypes.includes(i.issue_type))
     }
-    return filtered.sort((a, b) => b.trust_score - a.trust_score)
-  }, [issues, filterType])
+    return filtered.sort((a, b) => {
+      const severityMap: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const sA = severityMap[a.severity.toLowerCase()] ?? 0;
+      const sB = severityMap[b.severity.toLowerCase()] ?? 0;
+      if (sA !== sB) return sB - sA;
+      return b.trust_score - a.trust_score;
+    })
+  }, [issues, filterTypes])
+
+  const visibleIssues = useMemo(() => {
+    if (selectedNodeIds.length === 0) return sortedIssues;
+    return sortedIssues.filter((i) => selectedNodeIds.includes(i.id))
+  }, [sortedIssues, selectedNodeIds])
 
   const issueTypes = useMemo(() => {
     return Array.from(new Set(issues.map((i) => i.issue_type))).sort()
   }, [issues])
 
-  const selectedIssue = sortedIssues.find((issue) => issue.id === selectedId) ?? sortedIssues[0]
-  const clusterAlert = detectCluster(sortedIssues)
-  const activeSignals = sortedIssues.filter((issue) => issue.status !== 'resolved').length
   const mlIssues = useMemo(() => {
-    let filtered = [...issues]
-    if (mlFilterType !== 'ALL') {
-      filtered = filtered.filter((i) => i.issue_type === mlFilterType)
-    }
-    return filtered
-  }, [issues, mlFilterType])
+    if (activeNodeIds.length === 0) return sortedIssues
+    return sortedIssues.filter((i) => activeNodeIds.includes(i.id))
+  }, [sortedIssues, activeNodeIds])
 
-  const predictedPlans = useMemo(() => generatePredictedCorridors(mlIssues), [mlIssues])
+  const popupIssue = useMemo(() => issues.find((i) => i.id === popupIssueId) || null, [issues, popupIssueId])
+
+  const selectedIssue = visibleIssues.find((issue) => issue.id === selectedId) ?? visibleIssues[0]
+  const activeSignals = visibleIssues.filter((issue) => issue.status !== 'resolved').length
+
+  const predictedPlans = useMemo(() => generatePredictedCorridors(mlIssues, sortedIssues), [mlIssues, sortedIssues])
   const digOnceOpportunities = useMemo(
-    () => findDigOnceOpportunities(sortedIssues, predictedPlans),
-    [sortedIssues, predictedPlans]
+    () => findDigOnceOpportunities(visibleIssues, predictedPlans),
+    [visibleIssues, predictedPlans]
   )
   const primaryOpportunity = digOnceOpportunities[0]
   const totalSavings = digOnceOpportunities.reduce((sum, item) => sum + item.estimatedSavings, 0)
@@ -249,34 +203,113 @@ export function AdminPage() {
 
       <DispatchTicker selectedIssue={selectedIssue} />
 
-      <div className="grid h-[calc(100vh-82px)] grid-cols-[400px_minmax(0,1fr)_450px] overflow-hidden">
+      <div
+        className={`grid h-[calc(100vh-82px)] overflow-hidden ${
+          mapMode === 'b2b' ? 'grid-cols-[400px_minmax(0,1fr)_450px]' : 'grid-cols-[400px_minmax(0,1fr)]'
+        }`}
+      >
         <aside className="h-full overflow-y-auto border-r border-zinc-200 bg-white">
           <div className="sticky top-0 z-10 border-b-2 border-[#111111] bg-white px-5 py-4">
             <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
               Live Dispatch Triage Queue
             </p>
             <div className="mt-2 flex items-end justify-between">
-              <h2 className="text-3xl font-black leading-none text-zinc-900">Trust Sorted</h2>
+              <h2 className="text-3xl font-black leading-none text-zinc-900">Select Issues to display on map </h2>
               <span className="font-mono text-xs font-bold text-zinc-500">
-                {String(sortedIssues.length).padStart(2, '0')} ITEMS
+                {String(visibleIssues.length).padStart(2, '0')} ITEMS
               </span>
             </div>
-            <div className="mt-4">
-              <select
-                value={filterType}
-                onChange={(e) => {
-                  setFilterType(e.target.value)
-                  setSelectedId(null)
-                }}
-                className="w-full border-2 border-[#111111] bg-white px-3 py-2 text-xs font-black uppercase tracking-widest text-[#111111] focus:outline-none"
-              >
-                <option value="ALL">ALL INCIDENT TYPES</option>
-                {issueTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type.toUpperCase()}
-                  </option>
-                ))}
-              </select>
+            <div className="mt-4 space-y-3">
+              <details className="group relative z-[60]">
+                <summary className="flex w-full cursor-pointer items-center justify-between border-2 border-[#111111] bg-white px-3 py-2 text-xs font-black uppercase tracking-widest text-[#111111] focus:outline-none list-none marker:hidden">
+                  <span>MAP OVERLAY: {filterTypes.length === 0 ? 'ALL TYPES' : `${filterTypes.length} SELECTED`}</span>
+                  <span className="transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                <div className="absolute left-0 right-0 top-full mt-1 border-2 border-[#111111] bg-white shadow-xl">
+                  <div className="max-h-48 space-y-1 overflow-y-auto p-2">
+                    {issueTypes.map((type) => (
+                      <label
+                        key={type}
+                        className="flex cursor-pointer items-center gap-2 p-1 text-[10px] font-bold uppercase tracking-wider text-zinc-900 hover:bg-zinc-100"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={filterTypes.includes(type)}
+                          onChange={(e) => {
+                            if (e.target.checked) setFilterTypes([...filterTypes, type])
+                            else setFilterTypes(filterTypes.filter((t) => t !== type))
+                            setSelectedId(null)
+                            setSelectedNodeIds([])
+                            setActiveNodeIds([])
+                          }}
+                          className="h-3 w-3 accent-[#E11D2E]"
+                        />
+                        <span className="truncate">{type}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {filterTypes.length > 0 && (
+                    <div className="border-t-2 border-[#111111] bg-[#F2F1EE] p-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterTypes([])
+                          setSelectedId(null)
+                          setSelectedNodeIds([])
+                          setActiveNodeIds([])
+                          const details = document.querySelector('details[open]') as HTMLDetailsElement
+                          if (details) details.removeAttribute('open')
+                        }}
+                        className="w-full border border-[#111111] bg-white py-2 text-xs font-black uppercase tracking-widest text-[#111111] transition-colors hover:bg-zinc-100"
+                      >
+                        CLEAR SELECTION
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              <details className="group relative">
+                <summary className="flex w-full cursor-pointer items-center justify-between border-2 border-[#111111] bg-[#111111] px-3 py-2 text-xs font-black uppercase tracking-widest text-white focus:outline-none list-none marker:hidden">
+                  <span>SPECIFIC ISSUES: {selectedNodeIds.length === 0 ? 'ALL' : `${selectedNodeIds.length} SELECTED`}</span>
+                  <span className="transition-transform group-open:rotate-180">▼</span>
+                </summary>
+                <div className="absolute left-0 right-0 top-full z-50 mt-1 border-2 border-[#111111] bg-white shadow-xl">
+                  <div className="max-h-48 space-y-1 overflow-y-auto p-2">
+                    {sortedIssues.map((issue) => (
+                      <label
+                        key={issue.id}
+                        className="flex cursor-pointer items-center gap-2 p-1 text-[10px] font-bold uppercase tracking-wider text-zinc-900 hover:bg-zinc-100"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedNodeIds.includes(issue.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedNodeIds([...selectedNodeIds, issue.id])
+                            else setSelectedNodeIds(selectedNodeIds.filter((t) => t !== issue.id))
+                          }}
+                          className="h-3 w-3 accent-[#E11D2E]"
+                        />
+                        <span className="truncate">{issue.id.slice(0, 12)} // {issue.issue_type}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="border-t-2 border-[#111111] bg-[#F2F1EE] p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveNodeIds(selectedNodeIds)
+                        setMapMode('b2b')
+                        const details = document.querySelector('details[open]') as HTMLDetailsElement
+                        if (details) details.removeAttribute('open')
+                      }}
+                      className="w-full border border-[#111111] bg-[#E11D2E] py-2 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-[#111111]"
+                    >
+                      GENERATE ML PIPELINE
+                    </button>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
 
@@ -285,13 +318,14 @@ export function AdminPage() {
               Loading municipal signal queue...
             </div>
           ) : (
-            sortedIssues.map((issue, index) => (
+            visibleIssues.map((issue, index) => (
               <AdminIncidentRow
                 key={issue.id}
                 issue={issue}
-                active={selectedIssue?.id === issue.id}
+                active={selectedId === issue.id}
                 rank={index + 1}
                 onSelect={setSelectedId}
+                onDoubleClick={setPopupIssueId}
               />
             ))
           )}
@@ -302,14 +336,14 @@ export function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                  {mapMode === 'b2b' ? 'B2B Infrastructure Coordinator' : 'Geographic Intelligence Canvas'}
+                  {mapMode === 'b2b' ? 'B2B Infrastructure Coordinator' : ''}
                 </p>
                 <h2
                   className={`mt-1 font-black leading-none text-zinc-900 ${
                     mapMode === 'b2b' ? 'text-3xl' : 'text-4xl'
                   }`}
                 >
-                  {mapMode === 'b2b' ? 'Dig-Once Spatial Matchmaker' : 'Municipal Signal Map'}
+                  {mapMode === 'b2b' ? 'Dig-Once Spatial Matchmaker' : ' Issues Map'}
                 </h2>
               </div>
               <div className="flex items-center gap-3">
@@ -328,21 +362,7 @@ export function AdminPage() {
                     </button>
                   ))}
                 </div>
-                {clusterAlert && mapMode === 'dispatch' && (
-                  <div className="flex items-center gap-2 border border-[#E11D2E] bg-white px-3 py-2 text-[#E11D2E]">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      Cluster Alert
-                    </span>
-                  </div>
-                )}
-                {mapMode === 'dispatch' && (
-                  <div className="border border-[#111111] bg-[#111111] px-4 py-2 text-white">
-                    <span className="font-mono text-[11px] font-bold uppercase tracking-wider">
-                      EARTH 3D MOCK
-                    </span>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
@@ -438,25 +458,11 @@ export function AdminPage() {
                   ))}
                 </svg>
 
-                <div className="absolute right-4 top-4 z-[45] w-64 border border-[#111111] bg-white shadow-xl">
-                  <div className="border-b border-[#111111] bg-[#111111] px-3 py-2 text-white">
-                    <p className="font-mono text-[10px] font-black uppercase tracking-widest">
-                      AI Corridor Generator
+                <div className="absolute right-4 top-4 z-[45] w-52 border border-[#111111] bg-white">
+                  <div className="border-b border-[#111111] px-3 py-2">
+                    <p className="font-mono text-[10px] font-black uppercase tracking-widest text-zinc-900">
+                      Utility Corridors
                     </p>
-                  </div>
-                  <div className="border-b border-[#111111] bg-[#F2F1EE] p-2">
-                    <select
-                      value={mlFilterType}
-                      onChange={(e) => setMlFilterType(e.target.value)}
-                      className="w-full border-2 border-[#111111] bg-white px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#111111] focus:outline-none"
-                    >
-                      <option value="ALL">Auto (Top 3 Densest)</option>
-                      {issueTypes.map((type) => (
-                        <option key={type} value={type}>
-                          Target: {type}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                   <div className="divide-y divide-zinc-200">
                     {predictedPlans.map((plan) => (
@@ -497,7 +503,8 @@ export function AdminPage() {
               </>
             )}
 
-            {sortedIssues.map((issue, index) => {
+            {visibleIssues.map((issue, index) => {
+              const selectionOrder = selectedNodeIds.length > 0 ? selectedNodeIds.indexOf(issue.id) + 1 : index + 1
               const position = normalizeMarker(issue, index, sortedIssues)
               const active = selectedIssue?.id === issue.id
               const mutedInB2B = mapMode === 'b2b' && primaryOpportunity?.issue.id !== issue.id
@@ -507,6 +514,7 @@ export function AdminPage() {
                   type="button"
                   data-testid="map-node-marker"
                   onClick={() => setSelectedId(issue.id)}
+                  onDoubleClick={() => setPopupIssueId(issue.id)}
                   className={`absolute z-40 flex -translate-x-1/2 -translate-y-1/2 items-stretch border border-[#111111] bg-white font-mono text-[10px] font-black uppercase tracking-wider ring-4 ring-white/80 transition-transform hover:scale-110 ${
                     active ? 'bg-[#E11D2E] text-white' : 'text-[#111111]'
                   } ${mutedInB2B ? 'opacity-35' : ''}`}
@@ -521,7 +529,7 @@ export function AdminPage() {
                     style={{ backgroundColor: active ? '#111111' : severityColor(issue) }}
                   />
                   <span className="flex h-7 min-w-8 items-center justify-center px-2">
-                    {mapMarkerCode(issue, index + 1)}
+                    {mapMarkerCode(issue, selectionOrder)}
                   </span>
                 </button>
               )
@@ -550,124 +558,51 @@ export function AdminPage() {
           </div>
         </main>
 
-        <aside className="h-full overflow-y-auto border-l border-zinc-200 bg-white">
-          {selectedIssue ? (
-            <div>
-              <div className="sticky top-0 z-10 border-b-2 border-[#111111] bg-white px-5 py-4">
-                <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                  {mapMode === 'b2b' ? 'Revenue Intelligence' : 'Deep Inspection Node'}
-                </p>
-                <h2 className="mt-2 text-3xl font-black leading-none text-zinc-900">
-                  {mapMode === 'b2b' ? 'Monetization' : selectedIssue.issue_type}
-                </h2>
-              </div>
+        {mapMode === 'b2b' && (
+          <aside className="h-full overflow-y-auto border-l border-zinc-200 bg-white">
+            {selectedIssue ? (
+              <div>
+                <div className="sticky top-0 z-10 border-b-2 border-[#111111] bg-white px-5 py-4">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
+                    Revenue Intelligence
+                  </p>
+                  <h2 className="mt-2 text-3xl font-black leading-none text-zinc-900">
+                    Monetization
+                  </h2>
+                </div>
 
-              {mapMode === 'dispatch' && <VisualEvidence issue={selectedIssue} />}
-
-              <div className="space-y-5 px-5 py-5">
-                {mapMode === 'b2b' && (
+                <div className="space-y-5 px-5 py-5">
                   <MonetizationPanel
                     opportunities={digOnceOpportunities}
                     totalSavings={totalSavings}
                   />
-                )}
-
-                {mapMode === 'dispatch' && (
-                  <>
-                    <section className="border border-zinc-200 bg-white">
-                      <div className="border-b border-zinc-200 px-4 py-3">
-                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                          <ScanEye className="h-4 w-4" />
-                          Gemini Parsed Payload
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200">
-                        <Metric label="Trust" value={`${selectedIssue.trust_score}`} />
-                        <Metric label="Confidence" value={`${selectedIssue.confidence ?? 88}%`} />
-                      </div>
-                      <div className="px-4 py-4">
-                        <p className="text-sm leading-relaxed text-zinc-700">
-                          {cleanDescription(selectedIssue.description)}
-                        </p>
-                        <p className="mt-4 font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-                          {trackingId(selectedIssue.id)} // {new Date(selectedIssue.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </section>
-
-                    <section className="border border-zinc-200 bg-white">
-                      <div className="border-b border-zinc-200 px-4 py-3">
-                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                          <FileText className="h-4 w-4" />
-                          Complete Text Transcript
-                        </p>
-                      </div>
-                      <p className="px-4 py-4 text-base font-medium leading-relaxed text-zinc-900">
-                        {cleanDescription(selectedIssue.description)}
-                      </p>
-                    </section>
-
-                    <section className="border border-zinc-200 bg-white">
-                      <div className="border-b border-zinc-200 px-4 py-3">
-                        <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#E11D2E]">
-                          <BrainCircuit className="h-4 w-4" />
-                          Trust Engine Matrix
-                        </p>
-                      </div>
-                      <div className="divide-y divide-zinc-200">
-                        {trustMatrix(selectedIssue).map((item) => (
-                          <div key={item.label} className="px-4 py-4">
-                            <div className="mb-2 flex items-center justify-between gap-4">
-                              <p className="text-xs font-black uppercase tracking-wider text-zinc-900">
-                                {item.label}
-                              </p>
-                              <span className="font-mono text-sm font-black text-[#E11D2E]">
-                                {item.value}
-                              </span>
-                            </div>
-                            <div className="h-2 bg-[#F2F1EE]">
-                              <div className="h-full bg-[#111111]" style={{ width: `${item.value}%` }} />
-                            </div>
-                            <p className="mt-2 text-xs leading-relaxed text-zinc-500">{item.note}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-
-                    <section className="grid grid-cols-2 border border-zinc-200 bg-white">
-                      <Action icon={BadgeCheck} label="Status" value={selectedIssue.status.replace('_', ' ')} />
-                      <Action icon={MapPin} label="Location" value={selectedIssue.lat ? 'Pinned' : 'Estimated'} />
-                      <Action icon={ShieldAlert} label="Ward" value={selectedIssue.ward_name ?? 'Manual routing'} />
-                      <Action
-                        icon={AlertTriangle}
-                        label="Geofence Risk"
-                        value={
-                          selectedIssue.spatial_risk_boost
-                            ? `+${selectedIssue.spatial_risk_boost} high-risk boost`
-                            : 'No multiplier'
-                        }
-                      />
-                      <Action icon={RadioTower} label="Dispatch" value={statusCopy(selectedIssue)} wide />
-                      <Action icon={DatabaseZap} label="Source" value="Gemini ingestion cache" />
-                      <Action icon={Clock3} label="SLA" value={selectedIssue.trust_score >= 88 ? 'Immediate' : 'Queued'} />
-                    </section>
-                  </>
-                )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center px-8 text-center">
-              <div>
-                <Activity className="mx-auto h-8 w-8 text-[#E11D2E]" />
-                <p className="mt-4 text-sm font-black uppercase tracking-widest text-zinc-900">
-                  No inspection node selected
-                </p>
+            ) : (
+              <div className="flex h-full items-center justify-center px-8 text-center">
+                <div>
+                  <Activity className="mx-auto h-8 w-8 text-[#E11D2E]" />
+                  <p className="mt-4 text-sm font-black uppercase tracking-widest text-zinc-900">
+                    No inspection node selected
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
-        </aside>
+            )}
+          </aside>
+        )}
       </div>
+
+      <IssueModal issue={popupIssue} onClose={() => setPopupIssueId(null)} />
     </section>
+  )
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-4 py-4">
+      <p className="font-mono text-3xl font-black leading-none text-zinc-900">{value}</p>
+      <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</p>
+    </div>
   )
 }
 
@@ -783,73 +718,6 @@ function DispatchTicker({ selectedIssue }: { selectedIssue: Issue | undefined })
           </span>
         ))}
       </div>
-    </div>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="px-4 py-4">
-      <p className="font-mono text-3xl font-black leading-none text-zinc-900">{value}</p>
-      <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</p>
-    </div>
-  )
-}
-
-function VisualEvidence({ issue }: { issue: Issue }) {
-  if (issue.image_url) {
-    return (
-      <div className="border-b border-zinc-200">
-        <img
-          src={issue.image_url}
-          alt={`${issue.issue_type} ingestion`}
-          className="h-64 w-full object-cover grayscale transition-all duration-300 hover:grayscale-0"
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative h-64 overflow-hidden border-b border-zinc-200 bg-[#F2F1EE]">
-      <div className="absolute inset-0 [background-image:linear-gradient(#D4D4D8_1px,transparent_1px),linear-gradient(90deg,#D4D4D8_1px,transparent_1px)] [background-size:32px_32px]" />
-      <div className="absolute left-8 top-8 h-36 w-56 border-2 border-[#E11D2E]" />
-      <div className="absolute left-14 top-14 h-20 w-36 border border-[#111111] bg-white/70" />
-      <div className="absolute right-8 top-10 border border-[#111111] bg-white px-3 py-2">
-        <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
-          Gemini Visual Parse
-        </p>
-        <p className="mt-1 text-xl font-black leading-none text-zinc-900">{issue.issue_type}</p>
-      </div>
-      <div className="absolute bottom-8 left-8 right-8 border border-zinc-200 bg-white px-4 py-3">
-        <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-500">
-          Evidence frame synthesized from live report metadata
-        </p>
-        <p className="mt-1 text-sm font-black uppercase tracking-wider text-zinc-900">
-          {issue.severity} severity // {issue.trust_score} trust
-        </p>
-      </div>
-    </div>
-  )
-}
-
-function Action({
-  icon: Icon,
-  label,
-  value,
-  wide = false,
-}: {
-  icon: typeof BadgeCheck
-  label: string
-  value: string
-  wide?: boolean
-}) {
-  return (
-    <div className={`border-b border-r border-zinc-200 px-4 py-4 ${wide ? 'col-span-2' : ''}`}>
-      <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#E11D2E]">
-        <Icon className="h-4 w-4" />
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-black leading-tight text-zinc-900">{value}</p>
     </div>
   )
 }

@@ -8,6 +8,7 @@ interface AdminIncidentRowProps {
   active: boolean
   rank: number
   onSelect: (id: string) => void
+  onDoubleClick?: (id: string) => void
 }
 
 function formatTrackingId(id: string): string {
@@ -18,13 +19,14 @@ function severityLabel(issue: Issue): string {
   return issue.severity.toUpperCase()
 }
 
-export function AdminIncidentRow({ issue, active, rank, onSelect }: AdminIncidentRowProps) {
+export function AdminIncidentRow({ issue, active, rank, onSelect, onDoubleClick }: AdminIncidentRowProps) {
   const critical = issue.trust_score >= 88 || issue.severity.toLowerCase() === 'high'
 
   return (
     <button
       type="button"
       onClick={() => onSelect(issue.id)}
+      onDoubleClick={() => onDoubleClick?.(issue.id)}
       className={cn(
         'group w-full border-b border-zinc-200 bg-white px-5 py-4 text-left transition-colors hover:bg-[#F2F1EE]',
         active && 'border-l-4 border-l-[#E11D2E] bg-[#F2F1EE]'
