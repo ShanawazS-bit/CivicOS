@@ -26,6 +26,7 @@ import {
   findDemoDigOnceOpportunities,
   type DigOnceOpportunity,
 } from '@/lib/monetization'
+import { cleanDescription } from '@/lib/formatters'
 import { fetchIssues, subscribeToIssues } from '@/services/issueService'
 import type { Issue } from '@/types'
 
@@ -167,6 +168,7 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapMode, setMapMode] = useState<'dispatch' | 'b2b'>('dispatch')
+  const [filterType, setFilterType] = useState<string>('ALL')
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -189,10 +191,18 @@ export function AdminPage() {
     return () => window.clearInterval(clock)
   }, [])
 
-  const sortedIssues = useMemo(
-    () => [...issues].sort((a, b) => b.trust_score - a.trust_score),
-    [issues]
-  )
+  const sortedIssues = useMemo(() => {
+    let filtered = [...issues]
+    if (filterType !== 'ALL') {
+      filtered = filtered.filter((i) => i.issue_type === filterType)
+    }
+    return filtered.sort((a, b) => b.trust_score - a.trust_score)
+  }, [issues, filterType])
+
+  const issueTypes = useMemo(() => {
+    return Array.from(new Set(issues.map((i) => i.issue_type))).sort()
+  }, [issues])
+
   const selectedIssue = sortedIssues.find((issue) => issue.id === selectedId) ?? sortedIssues[0]
   const clusterAlert = detectCluster(sortedIssues)
   const activeSignals = sortedIssues.filter((issue) => issue.status !== 'resolved').length
@@ -240,6 +250,23 @@ export function AdminPage() {
               <span className="font-mono text-xs font-bold text-zinc-500">
                 {String(sortedIssues.length).padStart(2, '0')} ITEMS
               </span>
+            </div>
+            <div className="mt-4">
+              <select
+                value={filterType}
+                onChange={(e) => {
+                  setFilterType(e.target.value)
+                  setSelectedId(null)
+                }}
+                className="w-full border-2 border-[#111111] bg-white px-3 py-2 text-xs font-black uppercase tracking-widest text-[#111111] focus:outline-none"
+              >
+                <option value="ALL">ALL INCIDENT TYPES</option>
+                {issueTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -536,8 +563,7 @@ export function AdminPage() {
                       </div>
                       <div className="px-4 py-4">
                         <p className="text-sm leading-relaxed text-zinc-700">
-                          {selectedIssue.description ??
-                            'Gemini detected a municipal infrastructure anomaly requiring validation.'}
+                          {cleanDescription(selectedIssue.description)}
                         </p>
                         <p className="mt-4 font-mono text-[11px] font-bold uppercase tracking-wider text-zinc-500">
                           {trackingId(selectedIssue.id)} // {new Date(selectedIssue.created_at).toLocaleString()}
@@ -553,8 +579,7 @@ export function AdminPage() {
                         </p>
                       </div>
                       <p className="px-4 py-4 text-base font-medium leading-relaxed text-zinc-900">
-                        {selectedIssue.description ??
-                          'No citizen transcript supplied. Visual analysis remains available for dispatch verification.'}
+                        {cleanDescription(selectedIssue.description)}
                       </p>
                     </section>
 

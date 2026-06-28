@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { cleanDescription } from '@/lib/formatters'
 import type { Issue } from '@/types'
 import { feedMessage } from '@/lib/severityColor'
 
@@ -46,8 +47,8 @@ export function NeighborhoodFeed({ issues, loading }: NeighborhoodFeedProps) {
               </p>
               <span className="meta-label shrink-0 text-[10px]">{timeAgo(issue.created_at)}</span>
             </div>
-            {issue.description && (
-              <p className="body-copy mt-1 line-clamp-2 text-sm">{issue.description}</p>
+            {cleanDescription(issue.description) && (
+              <p className="body-copy mt-1 line-clamp-2 text-sm">{cleanDescription(issue.description)}</p>
             )}
             <div className="mt-2 flex gap-2">
               <span className="border border-brand-hairline bg-brand-gray px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-brand-muted">

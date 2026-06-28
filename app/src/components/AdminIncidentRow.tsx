@@ -1,4 +1,5 @@
 import { AlertTriangle, CircleDot, RadioTower } from 'lucide-react'
+import { cleanDescription } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import type { Issue } from '@/types'
 
@@ -46,7 +47,7 @@ export function AdminIncidentRow({ issue, active, rank, onSelect }: AdminInciden
       </div>
 
       <h3 className="text-xl font-black leading-tight text-zinc-900">
-        {issue.description ?? `${issue.issue_type} detected by civic ingestion pipeline.`}
+        {cleanDescription(issue.description)}
       </h3>
 
       <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-4">
