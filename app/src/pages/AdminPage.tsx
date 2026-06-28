@@ -169,6 +169,7 @@ export function AdminPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapMode, setMapMode] = useState<'dispatch' | 'b2b'>('dispatch')
   const [filterType, setFilterType] = useState<string>('ALL')
+  const [mlFilterType, setMlFilterType] = useState<string>('ALL')
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -206,7 +207,15 @@ export function AdminPage() {
   const selectedIssue = sortedIssues.find((issue) => issue.id === selectedId) ?? sortedIssues[0]
   const clusterAlert = detectCluster(sortedIssues)
   const activeSignals = sortedIssues.filter((issue) => issue.status !== 'resolved').length
-  const predictedPlans = useMemo(() => generatePredictedCorridors(sortedIssues), [sortedIssues])
+  const mlIssues = useMemo(() => {
+    let filtered = [...issues]
+    if (mlFilterType !== 'ALL') {
+      filtered = filtered.filter((i) => i.issue_type === mlFilterType)
+    }
+    return filtered
+  }, [issues, mlFilterType])
+
+  const predictedPlans = useMemo(() => generatePredictedCorridors(mlIssues), [mlIssues])
   const digOnceOpportunities = useMemo(
     () => findDigOnceOpportunities(sortedIssues, predictedPlans),
     [sortedIssues, predictedPlans]
@@ -429,11 +438,25 @@ export function AdminPage() {
                   ))}
                 </svg>
 
-                <div className="absolute right-4 top-4 z-[45] w-52 border border-[#111111] bg-white">
-                  <div className="border-b border-[#111111] px-3 py-2">
-                    <p className="font-mono text-[10px] font-black uppercase tracking-widest text-zinc-900">
-                      Utility Corridors
+                <div className="absolute right-4 top-4 z-[45] w-64 border border-[#111111] bg-white shadow-xl">
+                  <div className="border-b border-[#111111] bg-[#111111] px-3 py-2 text-white">
+                    <p className="font-mono text-[10px] font-black uppercase tracking-widest">
+                      AI Corridor Generator
                     </p>
+                  </div>
+                  <div className="border-b border-[#111111] bg-[#F2F1EE] p-2">
+                    <select
+                      value={mlFilterType}
+                      onChange={(e) => setMlFilterType(e.target.value)}
+                      className="w-full border-2 border-[#111111] bg-white px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#111111] focus:outline-none"
+                    >
+                      <option value="ALL">Auto (Top 3 Densest)</option>
+                      {issueTypes.map((type) => (
+                        <option key={type} value={type}>
+                          Target: {type}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="divide-y divide-zinc-200">
                     {predictedPlans.map((plan) => (
