@@ -208,7 +208,7 @@ function PipelineSection() {
       title: 'A photo or voice note replaces the form.',
       copy: (
         <>
-          Citizens skip messy forms — one image or a quick <strong>Voice Report</strong> auto-generates the <strong>issue type</strong>, <strong>severity score</strong>, and <strong>description</strong> using an on-device <strong>MobileNet AI</strong>. Need specific routing? Users can always manually override their <strong>Region and Municipality</strong> right from the upload screen.
+          Citizens skip messy forms — one image or a quick <strong>Voice Report</strong> auto-generates the <strong>issue type</strong>, <strong>severity score</strong>, and <strong>description</strong> using an on-device <strong>MobileNet AI</strong> (backed by a robust <strong>Canvas Pixel Heuristic</strong> fallback). Need specific routing? Users can always manually override their <strong>Region and Municipality</strong> right from the upload screen.
         </>
       ),
     },
