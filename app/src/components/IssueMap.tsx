@@ -9,7 +9,7 @@ import { geofencesToFeatureCollection } from '@/lib/geofencing'
 import { severityColor } from '@/lib/severityColor'
 
 const DEFAULT_CENTER = { lat: 22.7934, lng: 86.2049 }
-const MAP_STYLE = 'https://demotiles.maplibre.org/style.json'
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/bright'
 const GEOFENCE_DATA = geofencesToFeatureCollection()
 
 // Start zoomed way out — India from space level
