@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import Map, { Layer, Marker, NavigationControl, Source } from 'react-map-gl/maplibre'
+import type { MapRef } from 'react-map-gl/maplibre'
 import type { FillLayerSpecification, LineLayerSpecification } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { Issue } from '@/types'
@@ -10,6 +11,9 @@ import { severityColor } from '@/lib/severityColor'
 const DEFAULT_CENTER = { lat: 22.7934, lng: 86.2049 }
 const MAP_STYLE = 'https://demotiles.maplibre.org/style.json'
 const GEOFENCE_DATA = geofencesToFeatureCollection()
+
+// Start zoomed way out — India from space level
+const INTRO_VIEW = { latitude: 22.0, longitude: 80.0, zoom: 2 }
 
 const geofenceFillLayer: FillLayerSpecification = {
   id: 'civicos-geofence-fill',
@@ -73,10 +77,11 @@ export function IssueMap({
   showGeofences = true,
   height = '500px',
 }: IssueMapProps) {
+  const mapRef = useRef<MapRef>(null)
   const withCoords = issues.filter((i) => i.lat != null && i.lng != null)
   const clusterCenter = showCluster ? getClusterCenter(withCoords) : null
 
-  const viewState = useMemo(() => {
+  const targetView = useMemo(() => {
     if (withCoords.length === 0) {
       return { latitude: DEFAULT_CENTER.lat, longitude: DEFAULT_CENTER.lng, zoom: 14 }
     }
@@ -89,13 +94,27 @@ export function IssueMap({
     }
   }, [withCoords])
 
+  // On map load, fly from world-level zoom into the target location
+  const handleMapLoad = useCallback(() => {
+    mapRef.current?.flyTo({
+      center: [targetView.longitude, targetView.latitude],
+      zoom: targetView.zoom,
+      duration: 6000,
+      essential: true,
+      curve: 1.2,   // gentler arc — slower, more cinematic pull-down
+      speed: 0.4,
+    })
+  }, [targetView])
+
   return (
     <div className="overflow-hidden rounded-xl border border-brand-hairline" style={{ height }}>
       <Map
-        initialViewState={viewState}
+        ref={mapRef}
+        initialViewState={INTRO_VIEW}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAP_STYLE}
         attributionControl={false}
+        onLoad={handleMapLoad}
       >
         <NavigationControl position="top-right" showCompass={false} />
         {showGeofences && (

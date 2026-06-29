@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { Footer } from '@/components/Footer'
 import { Application } from '@splinetool/runtime'
 import { motion } from 'framer-motion'
 import {
@@ -75,11 +76,11 @@ export function AboutPage() {
                 [ COMMAND_VIEWPORT ]
               </span>
               <h2 className="mt-8 max-w-3xl text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-                 Nothing Changes if Nothing changes. Take Action today.
+                 Nothing Changes if <span className="font-black text-[#E11D2E]">Nothing Changes.</span> Take Action today.
               </h2>
             </FadeIn>
 
-            <FadeIn delay={0.1} className="border border-zinc-200 bg-white p-8 text-left dark:border-white/15 dark:bg-[#171717]">
+            <FadeIn delay={0.1} className="border border-zinc-200 bg-white p-8 text-center dark:border-white/15 dark:bg-[#171717]">
 
               <Link
                 to="/admin"
@@ -90,6 +91,8 @@ export function AboutPage() {
             </FadeIn>
           </div>
         </footer>
+
+        <Footer />
       </main>
     </div>
   )
@@ -339,7 +342,7 @@ function GeofenceSection() {
               [ GEOFENCE // WARD ROUTING ]
             </span>
             <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-            because CIVIC.OS is not a <span className="text-[#E11D2E] font-bold">WhatsApp</span> Announcement Channel.
+            because CIVIC.OS is not a <span className="font-black text-[#E11D2E]">WhatsApp</span> Announcement Channel.
             </h2>
             <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
               Before a report reaches administrators, CivicOS asks three questions: is it inside

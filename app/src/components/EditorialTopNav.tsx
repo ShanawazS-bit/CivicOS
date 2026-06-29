@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Clock } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 
@@ -71,11 +70,6 @@ export function EditorialTopNav() {
           })}
         </div>
 
-        <div className="hidden h-4 w-px bg-zinc-200 dark:bg-white/20 sm:block" />
-        <div className="hidden items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#4A4A4A] dark:text-[#C9C2B8] lg:flex">
-          <Clock className="h-3 w-3 text-[#E11D2E]" />
-          <span>Approach Index</span>
-        </div>
         <ThemeToggle />
       </div>
     </nav>

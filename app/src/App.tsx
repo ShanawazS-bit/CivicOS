@@ -47,6 +47,7 @@ function AppShell() {
   const { pathname } = useLocation()
   const adminMode = pathname.startsWith('/admin') || pathname === '/login'
   const aboutMode = pathname === '/' || pathname === '/about'
+  const feedMode = pathname === '/feed'
   const editorialImmersiveMode = adminMode || aboutMode
 
   useEffect(() => {
@@ -61,7 +62,7 @@ function AppShell() {
     <>
       {!adminMode && <EditorialTopNav />}
       {!editorialImmersiveMode && <ConnectionBanner mode={dataSource} />}
-      <main className={adminMode ? 'h-screen overflow-hidden' : editorialImmersiveMode ? 'min-h-screen' : 'min-h-screen pb-[83px]'}>
+      <main className={adminMode ? 'h-screen overflow-hidden' : editorialImmersiveMode ? 'min-h-screen' : feedMode ? 'h-[calc(100vh-57px)] overflow-hidden' : 'min-h-screen pb-[83px]'}>
         <Routes>
           <Route
             path="/"
