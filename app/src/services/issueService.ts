@@ -5,7 +5,10 @@ import {
   enrichIssueWithGeofence,
   getGeofenceContext,
 } from '@/lib/geofencing'
-import type { CreateIssueInput, Issue, IssueStatus } from '../types'
+import type { CreateIssueInput, Issue, IssueStatus, AuditLog } from '../types'
+
+// Store mock audit logs in memory for demo mode
+const DEMO_AUDIT_LOGS: AuditLog[] = []
 
 export type DataSource = 'live' | 'demo'
 
@@ -109,10 +112,27 @@ export async function createIssue(input: CreateIssueInput): Promise<string> {
   return data as string
 }
 
-export async function updateIssueStatus(issueId: string, status: string): Promise<void> {
-  if ((await checkSupabaseConnection()) === 'demo') {
+export async function updateIssueStatus(
+  issueId: string, 
+  status: IssueStatus,
+  adminContext?: { id: string; email: string }
+): Promise<void> {
+  const isDemo = (await checkSupabaseConnection()) === 'demo'
+  
+  if (isDemo) {
     const issue = DEMO_ISSUES.find((i) => i.id === issueId)
-    if (issue) issue.status = status as IssueStatus
+    if (issue) issue.status = status
+    
+    if (adminContext && (status === 'resolved' || status === 'dismissed')) {
+      DEMO_AUDIT_LOGS.push({
+        id: `audit-${Date.now()}`,
+        issue_id: issueId,
+        admin_id: adminContext.id,
+        admin_email: adminContext.email,
+        action: status,
+        created_at: new Date().toISOString()
+      })
+    }
     return
   }
 
@@ -122,6 +142,31 @@ export async function updateIssueStatus(issueId: string, status: string): Promis
     .eq('id', issueId)
 
   if (error) throw error
+
+  if (adminContext && (status === 'resolved' || status === 'dismissed')) {
+    await supabase.from('audit_logs').insert({
+      issue_id: issueId,
+      admin_id: adminContext.id,
+      admin_email: adminContext.email,
+      action: status
+    })
+  }
+}
+
+export async function fetchAuditLogs(issueId: string): Promise<AuditLog[]> {
+  if ((await checkSupabaseConnection()) === 'demo') {
+    return DEMO_AUDIT_LOGS.filter(log => log.issue_id === issueId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }
+
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .eq('issue_id', issueId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data as AuditLog[]
 }
 
 export class DuplicateIssueError extends Error {

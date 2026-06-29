@@ -8,7 +8,9 @@ import {
   Route,
   ShieldAlert,
   Zap,
+  LogOut,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { AdminIncidentRow } from '@/components/AdminIncidentRow'
 import { IssueModal } from '@/components/IssueModal'
 import { CIVIC_GEOFENCES, type Geofence } from '@/lib/geofencing'
@@ -106,6 +108,7 @@ function formatCurrency(value: number): string {
 }
 
 export function AdminPage() {
+  const { user, signOut } = useAuth()
   const [issues, setIssues] = useState<Issue[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -167,7 +170,7 @@ export function AdminPage() {
   const popupIssue = useMemo(() => issues.find((i) => i.id === popupIssueId) || null, [issues, popupIssueId])
 
   const selectedIssue = visibleIssues.find((issue) => issue.id === selectedId) ?? visibleIssues[0]
-  const activeSignals = visibleIssues.filter((issue) => issue.status !== 'resolved').length
+  const activeSignals = visibleIssues.filter((issue) => issue.status !== 'resolved' && issue.status !== 'dismissed').length
 
   const predictedPlans = useMemo(() => generatePredictedCorridors(mlIssues, sortedIssues), [mlIssues, sortedIssues])
   const digOnceOpportunities = useMemo(
@@ -197,7 +200,16 @@ export function AdminPage() {
         <div className="flex items-center gap-6 font-mono text-xs font-bold uppercase tracking-wider">
           <span className="text-[#E11D2E]">Live Clock // {formatClock(now)}</span>
           <span>{activeSignals} Active Signals</span>
-          <span>{loading ? 'Syncing' : 'Desk Online'}</span>
+          <div className="flex items-center gap-4 border-l-2 border-[#111111] pl-6">
+            <span>{user?.email || 'Demo Admin'}</span>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 hover:text-[#E11D2E] transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </header>
 

@@ -1,4 +1,4 @@
-export type IssueStatus = 'pending' | 'verified' | 'assigned' | 'in_progress' | 'resolved'
+export type IssueStatus = 'pending' | 'verified' | 'assigned' | 'in_progress' | 'resolved' | 'dismissed'
 
 export type IssueSeverity = 'Low' | 'Medium' | 'High' | 'low' | 'medium' | 'high'
 
@@ -47,4 +47,13 @@ export interface CreateIssueInput {
 export interface DuplicateIssueError {
   duplicate_of: string
   message: string
+}
+
+export interface AuditLog {
+  id: string
+  issue_id: string
+  admin_id: string
+  admin_email: string
+  action: 'resolved' | 'dismissed'
+  created_at: string
 }

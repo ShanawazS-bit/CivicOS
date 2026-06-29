@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, useLocation, Navigate } from 'react-router-dom'
 import { BottomNav } from '@/components/BottomNav'
 import { ConnectionBanner } from '@/components/ConnectionBanner'
 import { EditorialTopNav } from '@/components/EditorialTopNav'
@@ -8,6 +8,15 @@ import { HomePage } from '@/pages/HomePage'
 import { ReportPage } from '@/pages/ReportPage'
 import { preloadPrimaryDestinationsWhenIdle } from '@/lib/preloadPrimaryDestinations'
 import { checkSupabaseConnection, type DataSource } from '@/services/issueService'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { LoginPage } from '@/pages/LoginPage'
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, loading } = useAuth()
+  if (loading) return <LoadingSpinner label="Authenticating..." />
+  if (!isAdmin) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
 
 const AdminPage = lazy(() =>
   import('@/pages/AdminPage').then((m) => ({ default: m.AdminPage }))
@@ -24,7 +33,9 @@ const FeedPage = lazy(() =>
 export default function App() {
   return (
     <BrowserRouter>
-      <AppShell />
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
@@ -32,7 +43,7 @@ export default function App() {
 function AppShell() {
   const [dataSource, setDataSource] = useState<DataSource>('demo')
   const { pathname } = useLocation()
-  const adminMode = pathname === '/admin' || pathname === '/admin/dashboard'
+  const adminMode = pathname.startsWith('/admin') || pathname === '/login'
   const aboutMode = pathname === '/' || pathname === '/about'
   const editorialImmersiveMode = adminMode || aboutMode
 
@@ -76,20 +87,25 @@ function AppShell() {
             }
           />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route
             path="/admin"
             element={
-              <Suspense fallback={<LoadingSpinner label="Loading dashboard…" />}>
-                <AdminPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner label="Loading dashboard…" />}>
+                  <AdminPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/admin/dashboard"
             element={
-              <Suspense fallback={<LoadingSpinner label="Loading dashboard…" />}>
-                <AdminPage />
-              </Suspense>
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingSpinner label="Loading dashboard…" />}>
+                  <AdminPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
         </Routes>

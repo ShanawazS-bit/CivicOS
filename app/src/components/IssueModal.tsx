@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { X, MapPin, RadioTower, ShieldAlert, Image as ImageIcon, AlertTriangle, Activity } from 'lucide-react'
 import { cleanDescription } from '@/lib/formatters'
-import { updateIssueStatus } from '@/services/issueService'
-import type { Issue } from '@/types'
+import { updateIssueStatus, fetchAuditLogs } from '@/services/issueService'
+import type { Issue, AuditLog } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface IssueModalProps {
   issue: Issue | null
@@ -44,6 +45,19 @@ function getDisplayConfidence(issue: Issue): number {
 
 export function IssueModal({ issue, onClose, onResolved }: IssueModalProps) {
   const [resolving, setResolving] = useState(false)
+  const [dismissing, setDismissing] = useState(false)
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const { user, isAdmin } = useAuth()
+
+  // Fetch audit logs when the modal opens
+  import('react').then(({ useEffect }) => {
+    useEffect(() => {
+      if (issue) {
+        fetchAuditLogs(issue.id).then(setAuditLogs).catch(console.error)
+      }
+    }, [issue?.id])
+  })
+
   if (!issue) return null
 
   return (
@@ -161,14 +175,30 @@ export function IssueModal({ issue, onClose, onResolved }: IssueModalProps) {
                 <p>Vision Confidence: {getDisplayConfidence(issue)}%</p>
               </div>
 
-              {issue.status !== 'resolved' && (
-                <div className="mt-6 border-t border-zinc-200 pt-6">
+              {auditLogs.length > 0 && (
+                <div className="mb-6 border-l-4 border-zinc-200 bg-zinc-50 p-4">
+                  <h4 className="mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">Audit Log</h4>
+                  <div className="space-y-2">
+                    {auditLogs.map((log) => (
+                      <div key={log.id} className="text-xs text-zinc-600">
+                        <span className="font-bold">{log.admin_email}</span> marked as <span className="uppercase font-bold text-[#E11D2E]">{log.action}</span> on {formatClock(log.created_at)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isAdmin && issue.status !== 'resolved' && issue.status !== 'dismissed' && (
+                <div className="mt-6 border-t border-zinc-200 pt-6 flex gap-3">
                   <button
-                    disabled={resolving}
+                    disabled={resolving || dismissing}
                     onClick={async () => {
                       setResolving(true)
                       try {
-                        await updateIssueStatus(issue.id, 'resolved')
+                        await updateIssueStatus(issue.id, 'resolved', {
+                          id: user?.id || 'unknown',
+                          email: user?.email || 'admin@demo'
+                        })
                         if (onResolved) onResolved()
                         onClose()
                       } catch (e) {
@@ -177,9 +207,30 @@ export function IssueModal({ issue, onClose, onResolved }: IssueModalProps) {
                         setResolving(false)
                       }
                     }}
-                    className="flex w-full items-center justify-center gap-2 bg-[#111111] px-4 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#E11D2E] disabled:opacity-50"
+                    className="flex-1 items-center justify-center bg-[#111111] px-4 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#E11D2E] disabled:opacity-50"
                   >
                     {resolving ? 'Resolving...' : 'Mark as Resolved'}
+                  </button>
+                  <button
+                    disabled={resolving || dismissing}
+                    onClick={async () => {
+                      setDismissing(true)
+                      try {
+                        await updateIssueStatus(issue.id, 'dismissed', {
+                          id: user?.id || 'unknown',
+                          email: user?.email || 'admin@demo'
+                        })
+                        if (onResolved) onResolved()
+                        onClose()
+                      } catch (e) {
+                        console.error('Failed to dismiss issue:', e)
+                      } finally {
+                        setDismissing(false)
+                      }
+                    }}
+                    className="flex-1 items-center justify-center border-2 border-[#111111] bg-white px-4 py-3 text-sm font-bold uppercase tracking-widest text-[#111111] transition-colors hover:bg-zinc-100 disabled:opacity-50"
+                  >
+                    {dismissing ? 'Dismissing...' : 'Dismiss (Low Trust)'}
                   </button>
                 </div>
               )}

@@ -3,7 +3,10 @@
 interface SpeechRecognition extends EventTarget {
   lang: string
   start(): void
-  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onstart: (() => void) | null
+  onerror: ((event: any) => void) | null
+  onend: (() => void) | null
+  onresult: ((event: any) => void) | null
 }
 
 interface Window {
