@@ -109,10 +109,10 @@ export function FeedPage() {
           {/* Impact stats bar */}
           <div className="grid shrink-0 grid-cols-4 border-b border-brand-hairline">
             {[
-              { val: metrics.totalReports, label: 'Reports' },
-              { val: metrics.resolvedCount, label: 'Resolved' },
-              { val: `~${metrics.estimatedPeopleHelped}`, label: 'Helped' },
-              { val: metrics.verifiedCount, label: 'Verified' },
+              { val: metrics.reportsSubmitted, label: 'Reports' },
+              { val: metrics.resolved, label: 'Resolved' },
+              { val: `~${metrics.peopleHelped}`, label: 'Helped' },
+              { val: metrics.verified, label: 'Verified' },
             ].map(({ val, label }) => (
               <div key={label} className="border-r border-brand-hairline px-3 py-2 text-center last:border-r-0">
                 <p className="font-sans text-base font-black text-brand-dark">{val}</p>
