@@ -43,7 +43,8 @@ export function AboutPage() {
                 SIGNAL OVER NOISE
               </h1>
               <p className="mt-8 max-w-md text-left text-[16px] leading-[1.45] tracking-normal text-[#4A4A4A] dark:text-[#C9C2B8]">
-                It’s one stone, two birds. The user product stays beautifully simple: report a problem with a photo. But the real engine is the commercial layer behind the city desk — matching verified repair demand with utility work, route-risk buyers, and coordination APIs.
+                One image. Zero Questions Asked. Eliminates reporting friction, processes raw images and routes structured alerts directly to active desks
+                before reaching the city desk.
               </p>
               <a
                 href="#pipeline"
