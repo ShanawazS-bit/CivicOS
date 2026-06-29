@@ -11,7 +11,10 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['@huggingface/transformers'],
+    exclude: ['@huggingface/transformers', 'maplibre-gl'],
+  },
+  worker: {
+    format: 'es',
   },
   server: {
     headers: {
@@ -20,3 +23,4 @@ export default defineConfig({
     },
   },
 })
+
