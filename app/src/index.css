@@ -85,6 +85,14 @@ html {
   color: var(--color-brand-muted);
 }
 
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14%       { transform: scale(1.25); }
+  28%       { transform: scale(1); }
+  42%       { transform: scale(1.18); }
+  56%       { transform: scale(1); }
+}
+
 @keyframes admin-dispatch-ticker {
   0% {
     transform: translateX(0);

@@ -339,7 +339,7 @@ function GeofenceSection() {
               [ GEOFENCE // WARD ROUTING ]
             </span>
             <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-            because CIVIC.OS is not a Whatsapp Announcement Channel.
+            because CIVIC.OS is not a <span className="text-[#E11D2E] font-bold">WhatsApp</span> Announcement Channel.
             </h2>
             <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
               Before a report reaches administrators, CivicOS asks three questions: is it inside

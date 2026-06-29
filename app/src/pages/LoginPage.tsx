@@ -1,9 +1,12 @@
 import { useAuth } from '@/contexts/AuthContext'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ShieldAlert } from 'lucide-react'
 
 export function LoginPage() {
-  const { user, loading, signInWithGoogle, signInWithGithub } = useAuth()
+  const { user, isAdmin, loading, signInWithGoogle, signInWithGithub, signInAsDemoAdmin } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const from: string = (location.state as { from?: string })?.from || '/admin'
 
   if (loading) {
     return (
@@ -15,9 +18,9 @@ export function LoginPage() {
     )
   }
 
-  // If already logged in, redirect to admin
-  if (user) {
-    return <Navigate to="/admin" replace />
+  // If already logged in, redirect to where they came from
+  if (user || isAdmin) {
+    return <Navigate to={from} replace />
   }
 
   return (
@@ -68,6 +71,15 @@ export function LoginPage() {
             </svg>
             Continue with GitHub
           </button>
+          
+          <div className="pt-4 border-t-2 border-zinc-100">
+            <button
+              onClick={() => { signInAsDemoAdmin(); navigate(from, { replace: true }) }}
+              className="flex w-full items-center justify-center gap-3 bg-zinc-200 px-4 py-3 text-sm font-black uppercase tracking-widest text-zinc-600 transition-colors hover:bg-zinc-300"
+            >
+              Demo Admin Login (No Auth)
+            </button>
+          </div>
         </div>
 
         <div className="mt-8 border-t-2 border-zinc-100 pt-6 text-center">

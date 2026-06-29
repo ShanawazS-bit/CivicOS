@@ -46,11 +46,12 @@ export function AppleNewsHeroFeed() {
             </span>
           </div>
           <h1 className="max-w-3xl text-[42px] font-black leading-[0.92] tracking-tight text-brand-dark md:text-[64px]">
-            Civic reporting that thinks in signals.
+            One photo.<br />Instant civic action.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-brand-muted">
-            A citizen photo becomes a clean municipal ticket: classified, located, scored, and
-            routed before it reaches the desk.
+            Snap a photo of a broken road, flooded drain, or busted streetlight. 
+            <strong> MobileNet</strong> classifies the problem on your device. <strong>EXIF data</strong> pins the exact location. 
+            Your report lands in the right ward's queue — sorted, scored, and ready to act on — in seconds.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -75,11 +76,11 @@ export function AppleNewsHeroFeed() {
             Intake Path // Signal Routing
           </div>
           <div className="space-y-3">
-            <FlowNode icon={FileImage} label="Photo" detail="Citizen frame" />
+            <FlowNode icon={FileImage} label="Photo or Voice" detail="Citizen capture" />
             <div className="ml-6 h-6 border-l border-[#111111]" />
-            <FlowNode icon={BrainCircuit} label="Gemini" detail="Type + severity" />
+            <FlowNode icon={BrainCircuit} label="MobileNet" detail="On-device classification" />
             <div className="ml-6 h-6 border-l border-[#111111]" />
-            <FlowNode icon={Route} label="Dispatch" detail="Trust-sorted queue" />
+            <FlowNode icon={Route} label="Ward Dispatch" detail="Trust-sorted queue" />
           </div>
         </div>
       </section>
@@ -103,11 +104,10 @@ export function AppleNewsHeroFeed() {
             <h3 className="mb-3 text-3xl font-black leading-none tracking-tight text-brand-dark">
               One photo.
               <br />
-              One tap.
+              Done.
             </h3>
             <p className="text-sm leading-relaxed text-brand-muted">
-              Snap a photo. Artificial intelligence classifies the civic issue instantly at
-              the edge—no dropdowns, no friction.
+              Take a photo or record a voice note. <strong>MobileNet</strong> runs on your device and tags the issue type and severity without any form to fill in.
             </p>
           </div>
           <div className="mt-6 flex items-center justify-between border-t border-brand-hairline pt-4 text-xs font-bold">
@@ -131,13 +131,12 @@ export function AppleNewsHeroFeed() {
               </span>
             </div>
             <h3 className="mb-3 text-3xl font-black leading-none tracking-tight text-brand-dark">
-              Everything
+              Pinned to
               <br />
-              Automated.
+              the right ward.
             </h3>
             <p className="text-sm leading-relaxed text-brand-muted">
-              Transform observations into location-pinned municipal coordinates automatically.
-              Track local health parameters seamlessly.
+              <strong>EXIF metadata</strong> and <strong>PostGIS geofencing</strong> match every report to the correct ward boundary — no manual address entry needed.
             </p>
           </div>
           <div className="mt-6 flex items-center justify-between border-t border-brand-hairline pt-4 text-xs font-bold">
@@ -161,11 +160,10 @@ export function AppleNewsHeroFeed() {
               </span>
             </div>
             <h3 className="mb-3 text-3xl font-black leading-none tracking-tight text-white">
-              Verified Trust Engine.
+              Only real reports get through.
             </h3>
             <p className="text-sm leading-relaxed text-white/60">
-              Cities do not need more broken feedback loops. They require high-fidelity,
-              verified structural signals to act immediately.
+              Every submission runs a <strong>Trust Score</strong> — built from photo EXIF validity, GPS accuracy, and a <strong>Canvas Pixel Heuristic</strong> check — so spam never reaches the desk.
             </p>
           </div>
           <div className="mt-6 border-t border-white/15 pt-4 font-mono text-xs text-white/50">

@@ -10,6 +10,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>
   signInWithGithub: () => Promise<void>
   signOut: () => Promise<void>
+  signInAsDemoAdmin: () => void
   isAdmin: boolean
 }
 
@@ -20,12 +21,14 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signInWithGithub: async () => {},
   signOut: async () => {},
+  signInAsDemoAdmin: () => {},
   isAdmin: false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [demoAdmin, setDemoAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,13 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    setDemoAdmin(false)
     await supabase.auth.signOut()
+  }
+
+  const signInAsDemoAdmin = () => {
+    setDemoAdmin(true)
   }
 
   // Determine if admin based on email domain or hardcoded list
   // For production, you'd check a custom claim or 'admin_roles' table
   // Here we just consider any logged in user as an admin to make the demo work easily
-  const isAdmin = !!user
+  const isAdmin = !!user || demoAdmin
 
   return (
     <AuthContext.Provider
@@ -72,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signInWithGithub,
         signOut,
+        signInAsDemoAdmin,
         isAdmin,
       }}
     >

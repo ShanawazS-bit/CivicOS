@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation, Navigate } from 'react-router-dom'
 import { BottomNav } from '@/components/BottomNav'
+import { Footer } from '@/components/Footer'
 import { ConnectionBanner } from '@/components/ConnectionBanner'
 import { EditorialTopNav } from '@/components/EditorialTopNav'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -13,8 +14,9 @@ import { LoginPage } from '@/pages/LoginPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAdmin, loading } = useAuth()
+  const location = useLocation()
   if (loading) return <LoadingSpinner label="Authenticating..." />
-  if (!isAdmin) return <Navigate to="/login" replace />
+  if (!isAdmin) return <Navigate to="/login" state={{ from: location.pathname }} replace />
   return <>{children}</>
 }
 
@@ -86,7 +88,14 @@ function AppShell() {
               </Suspense>
             }
           />
-          <Route path="/report" element={<ReportPage />} />
+          <Route
+            path="/report"
+            element={
+              <ProtectedRoute>
+                <ReportPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           <Route
             path="/admin"
@@ -111,6 +120,7 @@ function AppShell() {
         </Routes>
       </main>
       {!editorialImmersiveMode && <BottomNav />}
+      {!editorialImmersiveMode && <Footer />}
     </>
   )
 }
