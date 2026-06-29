@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { X, MapPin, RadioTower, ShieldAlert, Image as ImageIcon, AlertTriangle, Activity } from 'lucide-react'
 import { cleanDescription } from '@/lib/formatters'
+import { updateIssueStatus } from '@/services/issueService'
 import type { Issue } from '@/types'
 
 interface IssueModalProps {
   issue: Issue | null
   onClose: () => void
+  onResolved?: () => void
 }
 
 function formatTrackingId(id: string): string {
@@ -39,7 +42,8 @@ function getDisplayConfidence(issue: Issue): number {
   return 72 + (Math.abs(hash) % 27)
 }
 
-export function IssueModal({ issue, onClose }: IssueModalProps) {
+export function IssueModal({ issue, onClose, onResolved }: IssueModalProps) {
+  const [resolving, setResolving] = useState(false)
   if (!issue) return null
 
   return (
@@ -156,6 +160,29 @@ export function IssueModal({ issue, onClose }: IssueModalProps) {
                 <p>Reported: {formatClock(issue.created_at)}</p>
                 <p>Vision Confidence: {getDisplayConfidence(issue)}%</p>
               </div>
+
+              {issue.status !== 'resolved' && (
+                <div className="mt-6 border-t border-zinc-200 pt-6">
+                  <button
+                    disabled={resolving}
+                    onClick={async () => {
+                      setResolving(true)
+                      try {
+                        await updateIssueStatus(issue.id, 'resolved')
+                        if (onResolved) onResolved()
+                        onClose()
+                      } catch (e) {
+                        console.error('Failed to resolve issue:', e)
+                      } finally {
+                        setResolving(false)
+                      }
+                    }}
+                    className="flex w-full items-center justify-center gap-2 bg-[#111111] px-4 py-3 text-sm font-bold uppercase tracking-widest text-white transition-colors hover:bg-[#E11D2E] disabled:opacity-50"
+                  >
+                    {resolving ? 'Resolving...' : 'Mark as Resolved'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

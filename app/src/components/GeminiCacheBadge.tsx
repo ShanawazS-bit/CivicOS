@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { clearGeminiCache, getGeminiCacheStats } from '@/services/geminiService'
 import { cn } from '@/lib/utils'
 
-/** Dev-only badge showing Gemini localStorage cache status. */
+/** Dev-only badge showing ML localStorage cache status. */
 export function GeminiCacheBadge({ className }: { className?: string }) {
   const [count, setCount] = useState(0)
 
@@ -19,7 +19,7 @@ export function GeminiCacheBadge({ className }: { className?: string }) {
         className
       )}
     >
-      <span className="meta-label text-brand-muted">Gemini cache: {count} stored</span>
+      <span className="meta-label text-brand-muted">ML cache: {count} stored</span>
       {count > 0 && (
         <button
           type="button"

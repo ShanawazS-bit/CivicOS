@@ -317,7 +317,7 @@ export function ImageRiskTimeline(props: ImageRiskTimelineProps) {
             Image Risk Pipeline // Routed Audit Map
           </p>
           <h3 className="mt-2 text-2xl font-black leading-none tracking-tight text-[#111111]">
-            One image branches into confidence, location, severity, and dispatch risk.
+            The Metadata says it all: Confidence, Location, Severity, and Dispatch risk.
           </h3>
         </div>
         <div className="border border-[#111111] bg-[#111111] px-4 py-2 text-white">

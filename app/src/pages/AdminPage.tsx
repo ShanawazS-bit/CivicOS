@@ -592,7 +592,14 @@ export function AdminPage() {
         )}
       </div>
 
-      <IssueModal issue={popupIssue} onClose={() => setPopupIssueId(null)} />
+      <IssueModal 
+        issue={popupIssue} 
+        onClose={() => setPopupIssueId(null)} 
+        onResolved={async () => {
+          const data = await fetchIssues()
+          setIssues(data)
+        }}
+      />
     </section>
   )
 }

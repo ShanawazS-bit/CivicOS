@@ -20,6 +20,7 @@ export interface Issue {
   inside_jurisdiction?: boolean | null
   spatial_risk_boost?: number | null
   high_risk_zones?: string[] | null
+  override_municipality?: string | null
 }
 
 export interface GeminiAnalysis {
@@ -39,6 +40,8 @@ export interface CreateIssueInput {
   lat: number
   lng: number
   spatial_risk_boost?: number
+  override_municipality?: string
+  region?: string
 }
 
 export interface DuplicateIssueError {

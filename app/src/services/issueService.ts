@@ -5,7 +5,7 @@ import {
   enrichIssueWithGeofence,
   getGeofenceContext,
 } from '@/lib/geofencing'
-import type { CreateIssueInput, Issue } from '../types'
+import type { CreateIssueInput, Issue, IssueStatus } from '../types'
 
 export type DataSource = 'live' | 'demo'
 
@@ -54,7 +54,7 @@ export async function fetchIssues(): Promise<Issue[]> {
 
 export async function createIssue(input: CreateIssueInput): Promise<string> {
   const context = getGeofenceContext(input.lat, input.lng)
-  if (!context.insideJurisdiction) {
+  if (!context.insideJurisdiction && !input.override_municipality) {
     throw new GeofenceViolationError()
   }
 
@@ -77,6 +77,8 @@ export async function createIssue(input: CreateIssueInput): Promise<string> {
         image_url: input.image_url ?? null,
         lat: input.lat,
         lng: input.lng,
+        override_municipality: input.override_municipality,
+        ward_name: input.override_municipality ? input.override_municipality : undefined,
       })
     )
     return id
@@ -108,6 +110,12 @@ export async function createIssue(input: CreateIssueInput): Promise<string> {
 }
 
 export async function updateIssueStatus(issueId: string, status: string): Promise<void> {
+  if ((await checkSupabaseConnection()) === 'demo') {
+    const issue = DEMO_ISSUES.find((i) => i.id === issueId)
+    if (issue) issue.status = status as IssueStatus
+    return
+  }
+
   const { error } = await supabase
     .from('issues')
     .update({ status })

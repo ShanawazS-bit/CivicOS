@@ -7,6 +7,7 @@ import {
   ChevronDown,
   DollarSign,
   Eye,
+  FileSearch,
   Layers,
   MapPinned,
   Network,
@@ -41,8 +42,7 @@ export function AboutPage() {
                 SIGNAL OVER NOISE
               </h1>
               <p className="mt-8 max-w-md text-left text-[16px] leading-[1.45] tracking-normal text-[#4A4A4A] dark:text-[#C9C2B8]">
-                One image. Zero Questions Asked. Eliminates reporting friction, processes raw images and routes structured, high-trust alerts directly to active desks
-                before reaching the city desk.
+                It’s one stone, two birds. The user product stays beautifully simple: report a problem with a photo. But the real engine is the commercial layer behind the city desk — matching verified repair demand with utility work, route-risk buyers, and coordination APIs.
               </p>
               <a
                 href="#pipeline"
@@ -75,16 +75,12 @@ export function AboutPage() {
                 [ COMMAND_VIEWPORT ]
               </span>
               <h2 className="mt-8 max-w-3xl text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-                From public observation to verified municipal action.
+                 Nothing Changes if Nothing changes. Take Action today.
               </h2>
             </FadeIn>
 
             <FadeIn delay={0.1} className="border border-zinc-200 bg-white p-8 text-left dark:border-white/15 dark:bg-[#171717]">
-              <p className="text-[16px] leading-[1.45] tracking-normal text-[#4A4A4A] dark:text-[#C9C2B8]">
-                The administration console receives structured incidents ordered by trust score,
-                severity, geospatial uniqueness, and dispatch urgency. The result is not a
-                comment box. It is an operational queue.
-              </p>
+
               <Link
                 to="/admin"
                 className="mt-8 inline-flex border border-[#111111] bg-[#111111] px-6 py-3 text-[12px] font-black uppercase tracking-widest text-white transition-colors duration-300 hover:border-[#E11D2E] hover:bg-[#E11D2E]"
@@ -209,24 +205,52 @@ function PipelineSection() {
     {
       icon: Eye,
       label: '01 / Ingest',
-      title: 'Image becomes an instant ticket.',
-      copy:
-        'CivicOS removes dropdowns and text-heavy forms. A citizen image becomes an issue type, severity estimate, description, and source packet.',
+      title: 'A photo or voice note replaces the form.',
+      copy: (
+        <>
+          Citizens skip messy forms — one image or a quick <strong>Voice Report</strong> auto-generates the <strong>issue type</strong>, <strong>severity score</strong>, and <strong>description</strong> using an on-device <strong>MobileNet AI</strong>. Need specific routing? Users can always manually override their <strong>Region and Municipality</strong> right from the upload screen.
+        </>
+      ),
+    },
+    {
+      icon: FileSearch,
+      label: '02 / EXIF Check',
+      title: 'Is this photo real — and taken here?',
+      copy: (
+        <>
+          Every image carries hidden <strong>EXIF metadata</strong>: the exact <strong>timestamp</strong>, <strong>GPS coordinates</strong>, and <strong>device</strong> it was shot on. If any of that conflicts with the report, the system flags it — because a misplaced report wastes dispatch time.
+        </>
+      ),
     },
     {
       icon: Layers,
-      label: '02 / Synthesize',
-      title: 'Multi-vector calculations',
-
-      copy:
-        'The multimodal layer compares image confidence, coordinates, recency, and issue class so the city receives a scored signal instead of a raw complaint.',
+      label: '03 / Synthesize',
+      title: 'Raw upload becomes a scored signal.',
+      copy: (
+        <>
+          The <strong>ML layer</strong> weighs image confidence, location, recency, and issue class together — so administrators get an <strong>actionable score</strong>, not just a raw photo.
+        </>
+      ),
     },
     {
       icon: ShieldCheck,
-      label: '03 / Route',
-      title: 'Duplicate reports are clustered.',
-      copy:
-        'Nearby repeated reports are clustered into one operational node via PostGIS and database logic, preserving citizen signal without flooding administrators with redundant tickets.',
+      label: '04 / Deduplicate',
+      title: 'Ten reports of the same pothole → one ticket.',
+      copy: (
+        <>
+          <strong>PostGIS spatial clustering</strong> merges nearby reports into a single <strong>dispatch node</strong>. City inboxes stay clean; the signal stays strong.
+        </>
+      ),
+    },
+    {
+      icon: MapPinned,
+      label: '05 / Geofence & Route',
+      title: 'Right ward. Right desk. Right now.',
+      copy: (
+        <>
+          Automated <strong>geofencing</strong> routes issues to the correct municipality. But the real magic is the <strong>"Dig Once" approach</strong>: our system cross-references these issues with planned utility work (like laying fiber or fixing pipes). If a pothole sits above a planned water main repair, we flag them to be fixed together — saving the city money and reducing construction traffic.
+        </>
+      ),
     },
   ]
 
@@ -241,11 +265,10 @@ function PipelineSection() {
             [ PIPELINE ]
           </span>
           <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-            The reporting flow consists of three moves.
+            The Admin Queue
           </h2>
           <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
-            The approach is intentionally narrow: capture the physical condition, classify the
-            civic issue, and route only the strongest operational signal.
+            The administration console doesn't give city workers a messy comment box to read. Instead, it uses our <strong>MobileNet AI model</strong> to instantly classify the issue type from the photo. It then sorts every report into an operational queue, ordered by <strong>Trust Score</strong> (using EXIF metadata verification), <strong>Severity</strong>, and <strong>Geospatial uniqueness</strong> (using PostGIS clustering).
           </p>
         </FadeIn>
 
@@ -316,7 +339,7 @@ function GeofenceSection() {
               [ GEOFENCE // WARD ROUTING ]
             </span>
             <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-              Location is treated as a civic contract, not a pin on a map.
+            because CIVIC.OS is not a Whatsapp Announcement Channel.
             </h2>
             <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
               Before a report reaches administrators, CivicOS asks three questions: is it inside
@@ -435,12 +458,9 @@ function NetworkSection() {
               [ NETWORK // DUPLICATE SUPPRESSION ]
             </span>
             <h2 className="mt-8 max-w-3xl text-[41px] font-black leading-[0.90] tracking-normal md:text-[51px]">
-              Repeated complaints become one accountable dispatch node.
-            </h2>
+              Because when problem arises, it is felt by everyone, and we hear it.          </h2>
             <p className="mt-8 max-w-xl text-[15px] leading-[1.45] text-white/70">
-              Most civic reporting tools reward volume. CivicOS rewards uniqueness, confidence,
-              and municipal actionability. That means ten photos of the same pothole become one
-              high-trust node instead of ten disconnected inbox items.
+              We use sophisticated <strong>clustering algorithms</strong> and <strong>PostGIS spatial queries</strong> to automatically group related reports. Powered by an intelligent <strong>Trust Engine</strong>, ten distinct photos of the same pothole instantly merge into a single, highly actionable <strong>dispatch node</strong>. This eliminates redundant inbox noise and translates raw data into real-world human impact faster.
             </p>
           </FadeIn>
 
@@ -484,8 +504,11 @@ function MonetizationSection() {
       icon: Network,
       label: '01 / Dig-Once Coordination',
       title: 'Bundle civic repairs with planned utility work.',
-      copy:
-        'When a pothole, leakage, or drainage report lands near a fiber or power corridor, CivicOS identifies a coordination window before two teams cut into the same road twice.',
+      copy: (
+        <>
+          It's maddening for citizens when a newly paved road is torn up by a utility company a week later. By running <strong>PostGIS spatial intersections</strong> against upcoming utility schedules, CivicOS catches these collisions early. We identify a shared coordination window so both teams can fix the pothole and lay the fiber simultaneously, saving everyone time and money.
+        </>
+      ),
       stat: '$45K',
       statLabel: 'Example avoided rework',
     },
@@ -493,8 +516,11 @@ function MonetizationSection() {
       icon: Route,
       label: '02 / Road-Friction API',
       title: 'Package municipal hazard metadata for routing systems.',
-      copy:
-        'Verified civic hazards become structured route-friction signals for fleets, insurers, logistics teams, and transit operators that need to price or avoid local disruption.',
+      copy: (
+        <>
+          Commercial fleets and insurers lose millions annually to vehicle damage and delays from unknown street hazards. Instead of letting this data sit idle, we use <strong>ML models</strong> to convert raw reports into a structured, real-time <strong>Road-Friction API</strong>. This allows logistics teams to dynamically route around disruptions, monetizing civic data to help fund the city's repairs.
+        </>
+      ),
       stat: `${frictionSample.frictionIndex.toFixed(1)}x`,
       statLabel: 'Sample friction index',
     },
@@ -512,12 +538,11 @@ function MonetizationSection() {
               [ MONETIZATION // INFRASTRUCTURE COORDINATION ]
             </span>
             <h2 className="mt-10 text-left text-[41px] font-black leading-[0.90] tracking-normal text-[#111111] dark:text-[#F2F1EE] md:text-[51px]">
-              The civic signal creates an infrastructure marketplace.
+                From "Citizen" to "Cities": 2 birds with one stone.
+
             </h2>
             <p className="mt-10 max-w-sm text-[16px] leading-[1.45] text-[#4A4A4A] dark:text-[#C9C2B8]">
-              The user product stays simple: report a problem. The commercial layer sits behind the
-              city desk, matching verified repair demand with utility work, route-risk buyers, and
-              coordination APIs.
+              it's not just citizens, cities need smart infrastructure funding. we built the "DIG Once" approach—if the city has to tear up a street to fix a pothole, they might as well fix the pipes underneath so the road isn't dug up twice. Powered by <strong>predictive ML models</strong> and real-time <strong>coordination APIs</strong>, it automatically matches verified repair demand with utility work schedules and route-risk buyers, solving two massive problems simultaneously.
             </p>
           </FadeIn>
 
